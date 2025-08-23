@@ -10,7 +10,7 @@ from db.models import Category
 from routers.auth import get_current_user
 
 router = APIRouter(
-    prefix="/category",
+    prefix="/categories",
     tags=["category"]
 )
 
@@ -26,8 +26,9 @@ class CategoryResponse(BaseModel):
     id: int
     name: str
 
-    class ConfigDict:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
@@ -38,7 +39,7 @@ async def get_categories(db: db_dependency, user: user_dependency):
     return SuccessResponse(message="Categories retrieved successfully", data=category_responses)
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/add", status_code=status.HTTP_201_CREATED)
 async def create_category(db: db_dependency, user: user_dependency, request: CategoryRequest):
     validate_user(user)
 
@@ -56,7 +57,7 @@ async def create_category(db: db_dependency, user: user_dependency, request: Cat
     return SuccessResponse(message="Category created successfully", data=category_response)
 
 
-@router.put("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{category_id}/update", status_code=status.HTTP_204_NO_CONTENT)
 async def update_category(db: db_dependency, user: user_dependency, category_id: int, request: CategoryRequest):
     validate_user(user)
 
@@ -68,7 +69,7 @@ async def update_category(db: db_dependency, user: user_dependency, category_id:
     db.commit()
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{category_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(db: db_dependency, user: user_dependency, category_id: int):
     validate_user(user)
 

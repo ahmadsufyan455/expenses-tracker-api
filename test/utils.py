@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -5,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from db.database import Base
-from db.models import User
+from db.models import User, Category
 from main import app
 from routers.auth import pwd_context
 
@@ -22,6 +23,10 @@ def override_get_db():
         yield db
     finally:
         db.close()
+
+
+def override_get_current_user():
+    return {"user_id": uuid.UUID("b885a6ed-1ec2-4c34-8df4-2ba2a6974c1b"), "email": "testuser@gmail.com"}
 
 
 client = TestClient(app)
@@ -46,5 +51,21 @@ def test_user():
     yield user
 
     db.query(User).delete()
+    db.commit()
+    db.close()
+
+@pytest.fixture
+def test_category():
+    db = TestSessionLocal()
+    db.query(Category).delete()
+
+    category = Category(name="Test Category", user_id=uuid.UUID("b885a6ed-1ec2-4c34-8df4-2ba2a6974c1b"))
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+
+    yield category
+
+    db.query(Category).delete()
     db.commit()
     db.close()
