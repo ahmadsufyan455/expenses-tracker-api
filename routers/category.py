@@ -26,7 +26,7 @@ class CategoryResponse(BaseModel):
     id: int
     name: str
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
