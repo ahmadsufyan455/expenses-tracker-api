@@ -1,20 +1,25 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, DateTime, Enum as SQLEnum
-from sqlalchemy.orm import relationship
-from db.database import Base
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
 from enum import Enum
 
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, DateTime, Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from db.database import Base
+
+
 class TransactionType(Enum):
     INCOME = "income"
     EXPENSE = "expense"
+
 
 class PaymentMethod(Enum):
     CASH = "cash"
     CREDIT_CARD = "credit_card"
     BANK_TRANSFER = "bank_transfer"
     DIGITAL_WALLET = "digital_wallet"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -31,6 +36,7 @@ class User(Base):
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
     budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
 
+
 class Category(Base):
     __tablename__ = "categories"
 
@@ -41,6 +47,7 @@ class Category(Base):
     user = relationship("User", back_populates="categories")
     transactions = relationship("Transaction", back_populates="category")
     budgets = relationship("Budget", back_populates="category")
+
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -59,6 +66,7 @@ class Transaction(Base):
     category = relationship("Category", back_populates="transactions")
     attachments = relationship("Attachment", back_populates="transaction", cascade="all, delete-orphan")
 
+
 class Budget(Base):
     __tablename__ = "budgets"
 
@@ -70,6 +78,7 @@ class Budget(Base):
 
     user = relationship("User", back_populates="budgets")
     category = relationship("Category", back_populates="budgets")
+
 
 class Attachment(Base):
     __tablename__ = "attachments"

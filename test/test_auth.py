@@ -1,10 +1,13 @@
-from .utils import *
+from datetime import datetime
+
 from jose import jwt
 from starlette import status
+
 from routers.auth import get_db, authenticate_user, create_access_token, ALGORITHM, SECRET_KEY, get_current_user
-from datetime import datetime, timezone
+from .utils import *
 
 app.dependency_overrides[get_db] = override_get_db
+
 
 def test_create_access_token(test_user):
     token = create_access_token(str(test_user.id), test_user.email)
@@ -15,6 +18,7 @@ def test_create_access_token(test_user):
     assert decoded_token.get("email") == test_user.email
     assert decoded_token.get("exp") is not None
     assert decoded_token.get("exp") > datetime.now().timestamp()
+
 
 def test_authenticate_user(test_user):
     db = TestSessionLocal()
@@ -29,6 +33,7 @@ def test_authenticate_user(test_user):
 
     db.close()
 
+
 def test_authenticate_user_with_wrong_email():
     db = TestSessionLocal()
 
@@ -39,6 +44,7 @@ def test_authenticate_user_with_wrong_email():
     assert e.value.message == "Login failed"
     assert e.value.error == "User not found"
     db.close()
+
 
 def test_authenticate_user_with_wrong_password(test_user):
     db = TestSessionLocal()
@@ -51,6 +57,7 @@ def test_authenticate_user_with_wrong_password(test_user):
 
     db.close()
 
+
 @pytest.mark.asyncio
 async def test_get_current_user(test_user):
     token = create_access_token(str(test_user.id), test_user.email)
@@ -58,6 +65,7 @@ async def test_get_current_user(test_user):
     assert user is not None
     assert user.get("user_id") == str(test_user.id)
     assert user.get("email") == test_user.email
+
 
 @pytest.mark.asyncio
 async def test_get_current_user_with_invalid_token():
@@ -67,6 +75,7 @@ async def test_get_current_user_with_invalid_token():
 
     assert e.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert e.value.message == "Invalid token"
+
 
 def test_register_user():
     request_body = {
@@ -90,6 +99,7 @@ def test_register_user():
 
     db.close()
 
+
 def test_register_user_with_existing_email():
     request_body = {
         "email": "test2@test.com",
@@ -101,6 +111,7 @@ def test_register_user_with_existing_email():
     assert responses.status_code == status.HTTP_400_BAD_REQUEST
     assert responses.json().get("message") == "Registration failed"
     assert responses.json().get("error") == "Email already registered"
+
 
 def test_login_user():
     request_body = {
@@ -118,6 +129,7 @@ def test_login_user():
         }
     }
 
+
 def test_login_user_with_wrong_email():
     request_body = {
         "email": "wrong_email@test.com",
@@ -127,6 +139,7 @@ def test_login_user_with_wrong_email():
     assert responses.status_code == status.HTTP_401_UNAUTHORIZED
     assert responses.json().get("message") == "Login failed"
     assert responses.json().get("error") == "User not found"
+
 
 def test_login_user_with_wrong_password():
     request_body = {

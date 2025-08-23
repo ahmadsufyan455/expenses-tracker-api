@@ -3,9 +3,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
 from db.database import Base
-from main import app
 from db.models import User
+from main import app
 from routers.auth import pwd_context
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -14,6 +15,7 @@ TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
+
 def override_get_db():
     try:
         db = TestSessionLocal()
@@ -21,7 +23,9 @@ def override_get_db():
     finally:
         db.close()
 
+
 client = TestClient(app)
+
 
 @pytest.fixture
 def test_user():
@@ -40,7 +44,7 @@ def test_user():
     db.refresh(user)
 
     yield user
-    
+
     db.query(User).delete()
     db.commit()
     db.close()

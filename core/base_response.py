@@ -1,9 +1,12 @@
-from pydantic import BaseModel
 from typing import Optional, Any
+
+from pydantic import BaseModel
+
 
 class SuccessResponse(BaseModel):
     message: str
     data: Optional[Any] = {}
+
 
 class ErrorResponse(Exception):
     def __init__(self, message: str, error: str = None, status_code: int = 400):
