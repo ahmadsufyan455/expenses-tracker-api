@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
 from starlette import status
 
@@ -61,7 +62,8 @@ def test_authenticate_user_with_wrong_password(test_user):
 @pytest.mark.asyncio
 async def test_get_current_user(test_user):
     token = create_access_token(str(test_user.id), test_user.email)
-    user = await get_current_user(token)
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    user = await get_current_user(credentials)
     assert user is not None
     assert user.get("user_id") == str(test_user.id)
     assert user.get("email") == test_user.email
@@ -71,10 +73,12 @@ async def test_get_current_user(test_user):
 async def test_get_current_user_with_invalid_token():
     token = "invalid_token"
     with pytest.raises(Exception) as e:
-        await get_current_user(token)
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        await get_current_user(credentials)
 
     assert e.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert e.value.message == "Invalid token"
+    assert e.value.message == "Not authenticated"
+    assert e.value.error == "Invalid token"
 
 
 def test_register_user():

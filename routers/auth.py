@@ -5,14 +5,14 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import APIRouter
 from fastapi import Depends, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.base_response import SuccessResponse, ErrorResponse
-from db.database import SessionLocal
+from db.database import get_db
 from db.models import User
 
 load_dotenv()
@@ -22,21 +22,13 @@ ALGORITHM = os.getenv("JWT_ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+bearer_scheme = HTTPBearer(auto_error=False)
 
 router = APIRouter(
     prefix="/auth",
     tags=["auth"]
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
@@ -84,19 +76,25 @@ def authenticate_user(db: db_dependency, email: str, password: str):
 # JWT token validator and user extractor for protected routes.
 # Decodes JWT token, validates user data, and returns user information.
 # Used as a dependency to protect routes requiring authentication.
-async def get_current_user(token: str = Depends(oauth2_bearer)):
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    token = credentials.credentials if credentials else None
+    if not token:
+        raise ErrorResponse(message="Not authenticated", error="Invalid token",
+                            status_code=status.HTTP_401_UNAUTHORIZED)
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("user_id")
         email = payload.get("email")
         if user_id is None or email is None:
-            raise ErrorResponse(message="Invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+            raise ErrorResponse(message="Not authenticated", error="Invalid token",
+                                status_code=status.HTTP_401_UNAUTHORIZED)
         return {
             "user_id": user_id,
             "email": email
         }
     except JWTError:
-        raise ErrorResponse(message="Invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+        raise ErrorResponse(message="Not authenticated", error="Invalid token",
+                            status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)

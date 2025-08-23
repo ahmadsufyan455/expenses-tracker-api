@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class SuccessResponse(BaseModel):
     message: str
-    data: Optional[Any] = {}
+    data: Optional[Any] = None
 
 
 class ErrorResponse(Exception):
