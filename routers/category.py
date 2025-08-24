@@ -34,8 +34,10 @@ class CategoryResponse(BaseModel):
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_categories(db: db_dependency, user: user_dependency):
     validate_user(user)
-    categories = db.query(Category).filter(Category.user_id == user.get("user_id")).all()
-    category_responses = [CategoryResponse.model_validate(category) for category in categories]
+    categories = db.query(Category).filter(
+        Category.user_id == user.get("user_id")).all()
+    category_responses = [CategoryResponse.model_validate(
+        category) for category in categories]
     return SuccessResponse(message="Categories retrieved successfully", data=category_responses)
 
 
@@ -63,7 +65,8 @@ async def update_category(db: db_dependency, user: user_dependency, category_id:
 
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
-        raise ErrorResponse(message="Category not found", status_code=status.HTTP_404_NOT_FOUND)
+        raise ErrorResponse(message="Category not found",
+                            status_code=status.HTTP_404_NOT_FOUND)
     category.name = request.name
 
     db.commit()
@@ -75,12 +78,14 @@ async def delete_category(db: db_dependency, user: user_dependency, category_id:
 
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
-        raise ErrorResponse(message="Category not found", status_code=status.HTTP_404_NOT_FOUND)
+        raise ErrorResponse(message="Category not found",
+                            status_code=status.HTTP_404_NOT_FOUND)
 
     db.delete(category)
     db.commit()
 
 
 def validate_user(user: user_dependency):
-    if user is None:
-        raise ErrorResponse(message="Unauthorized", status_code=status.HTTP_401_UNAUTHORIZED)
+    if user.get("user_id") is None:
+        raise ErrorResponse(message="Unauthorized",
+                            status_code=status.HTTP_401_UNAUTHORIZED)
