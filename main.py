@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from core.base_response import ErrorResponse, SuccessResponse
 from db.database import engine
 from db.models import Base
-from routers import auth, category
+from routers import auth, category, transaction
 
 app = FastAPI()
 
@@ -36,3 +36,4 @@ def read_root():
 
 app.include_router(auth.router)
 app.include_router(category.router)
+app.include_router(transaction.router)

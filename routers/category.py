@@ -8,6 +8,7 @@ from core.base_response import ErrorResponse, SuccessResponse
 from db.database import get_db
 from db.models import Category
 from routers.auth import get_current_user
+from core.validation import validate_user
 
 router = APIRouter(
     prefix="/categories",
@@ -83,9 +84,3 @@ async def delete_category(db: db_dependency, user: user_dependency, category_id:
 
     db.delete(category)
     db.commit()
-
-
-def validate_user(user: user_dependency):
-    if user.get("user_id") is None:
-        raise ErrorResponse(message="Unauthorized",
-                            status_code=status.HTTP_401_UNAUTHORIZED)
