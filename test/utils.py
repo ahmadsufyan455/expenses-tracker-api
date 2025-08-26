@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from db.database import Base
-from db.models import User, Category, Transaction, TransactionType, PaymentMethod
+from db.models import User, Category, Transaction, TransactionType, PaymentMethod, Budget
 from main import app
 from routers.auth import pwd_context
 
@@ -98,5 +98,27 @@ def test_transaction(test_category):
     yield transaction
 
     db.query(Transaction).delete()
+    db.commit()
+    db.close()
+
+
+@pytest.fixture
+def test_budget(test_category):
+    db = TestSessionLocal()
+
+    budget = Budget(
+        user_id=TEST_USER_ID,
+        category_id=test_category.id,
+        amount=500000,
+        month=date(2025, 9, 1)  # September 2025
+    )
+
+    db.add(budget)
+    db.commit()
+    db.refresh(budget)
+
+    yield budget
+
+    db.query(Budget).delete()
     db.commit()
     db.close()

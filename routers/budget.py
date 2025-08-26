@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, status
 from core.base_response import SuccessResponse, ErrorResponse
 from db.database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from routers.auth import get_current_user
 from typing import Annotated
 from core.validation import validate_user
@@ -75,8 +76,16 @@ async def create_budget(db: db_dependency, user: user_dependency, request: Budge
         month=month_date)
 
     db.add(budget)
-    db.commit()
-    db.refresh(budget)
+
+    try:
+        db.commit()
+        db.refresh(budget)
+    except IntegrityError:
+        db.rollback()
+        raise ErrorResponse(
+            message="Budget already exists for this category and month",
+            status_code=status.HTTP_409_CONFLICT
+        )
 
     budget_response = BudgetResponse.model_validate(budget)
     return SuccessResponse(message="Budget created successfully", data=budget_response)
@@ -97,7 +106,14 @@ async def update_budget(db: db_dependency, user: user_dependency, budget_id: int
     budget.amount = request.amount
     budget.month = month_date
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise ErrorResponse(
+            message="Budget already exists for this category and month",
+            status_code=status.HTTP_409_CONFLICT
+        )
 
 
 @router.delete("/{budget_id}/delete", status_code=status.HTTP_204_NO_CONTENT)

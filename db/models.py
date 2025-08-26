@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, DateTime, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -24,7 +24,8 @@ class PaymentMethod(Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True,
+                default=uuid.uuid4, index=True)
     email = Column(String, unique=True, index=True)
     first_name = Column(String)
     last_name = Column(String)
@@ -32,9 +33,12 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
 
-    categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
-    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
-    budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
+    categories = relationship(
+        "Category", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship(
+        "Transaction", back_populates="user", cascade="all, delete-orphan")
+    budgets = relationship("Budget", back_populates="user",
+                           cascade="all, delete-orphan")
 
 
 class Category(Base):
@@ -52,7 +56,8 @@ class Category(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True,
+                default=uuid.uuid4, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     category_id = Column(Integer, ForeignKey("categories.id"))
     amount = Column(Integer)
@@ -64,7 +69,8 @@ class Transaction(Base):
 
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
-    attachments = relationship("Attachment", back_populates="transaction", cascade="all, delete-orphan")
+    attachments = relationship(
+        "Attachment", back_populates="transaction", cascade="all, delete-orphan")
 
 
 class Budget(Base):
@@ -78,6 +84,10 @@ class Budget(Base):
 
     user = relationship("User", back_populates="budgets")
     category = relationship("Category", back_populates="budgets")
+
+    __table_args__ = (UniqueConstraint(
+        "user_id", "category_id", "month", name="uq_user_category_month"),
+    )
 
 
 class Attachment(Base):
