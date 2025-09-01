@@ -6,7 +6,7 @@ from typing import Annotated, Optional
 from sqlalchemy.orm import Session
 from routers.auth import get_current_user
 from core.validation import validate_user
-from db.models import Transaction, Category, TransactionType, PaymentMethod
+from db.models import Budget, Transaction, Category, TransactionType, PaymentMethod
 from datetime import datetime
 from core.base_response import SuccessResponse, ErrorResponse
 from uuid import UUID
@@ -65,6 +65,20 @@ def create_transaction(db: db_dependency, user: user_dependency, request: Transa
     if not category:
         raise ErrorResponse(message="Category not found",
                             status_code=status.HTTP_404_NOT_FOUND)
+
+    current_month = datetime.now().date().replace(day=1)
+
+    budget = db.query(Budget).filter(
+        Budget.user_id == user.get("user_id"),
+        Budget.category_id == request.category_id,
+        Budget.month == current_month
+    ).first()
+
+    if not budget and request.type == TransactionType.EXPENSE:
+        raise ErrorResponse(
+            message=f"Please set a budget for {category.name} category for {current_month.strftime('%B %Y')} before adding expenses",
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
 
     transaction = Transaction(
         user_id=user.get("user_id"),
