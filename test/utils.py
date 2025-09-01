@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from db.database import Base
-from db.models import User, Category, Transaction, TransactionType, PaymentMethod, Budget
+from db.models import User, Category, Transaction, TransactionType, PaymentMethod, Budget, Attachment
 from main import app
 from routers.auth import pwd_context
 
@@ -120,5 +120,26 @@ def test_budget(test_category):
     yield budget
 
     db.query(Budget).delete()
+    db.commit()
+    db.close()
+
+
+@pytest.fixture
+def test_attachment(test_transaction):
+    db = TestSessionLocal()
+
+    attachment = Attachment(
+        transaction_id=test_transaction.id,
+        file_path="test_receipt.jpg",
+        uploaded_at=datetime.now()
+    )
+
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+
+    yield attachment
+
+    db.query(Attachment).delete()
     db.commit()
     db.close()
