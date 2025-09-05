@@ -1,0 +1,53 @@
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from app.config.settings import Settings
+from app.core.exceptions import NotFoundError, UnauthorizedError, ConflictError, ValidationError
+from app.repositories.user_repository import UserRepository
+from app.schemas.auth import LoginRequest, Token as TokenData
+from app.models.user import User
+from app.core.security import create_access_token, verify_password, get_password_hash
+from app.schemas.user import UserCreate
+from app.config.settings import settings
+from app.utils.validation import is_password_length_valid
+
+
+class AuthService:
+    def __init__(self, db: Session):
+        self.repository = UserRepository(db)
+
+    def create_user(self, user_data: UserCreate) -> User:
+        if self.repository.email_exists(user_data.email):
+            raise ConflictError("Email already exists")
+
+        if not is_password_length_valid(user_data.password):
+            raise ValidationError("Password must be at least 8 characters long")
+
+        hashed_password = get_password_hash(user_data.password)
+
+        user_dict = user_data.model_dump(exclude={'password'})
+        user_dict['hashed_password'] = hashed_password
+
+        try:
+            return self.repository.create(user_dict)
+        except IntegrityError:
+            raise ConflictError("Email already exists")
+
+    def authenticate_user(self, login_data: LoginRequest) -> TokenData:
+        user = self.repository.get_by_email(login_data.email)
+
+        if not user:
+            raise NotFoundError("User not found")
+
+        if not verify_password(login_data.password, user.hashed_password):
+            raise UnauthorizedError("Invalid password")
+
+        access_token = create_access_token(
+            user_id=user.id,
+            email=user.email
+        )
+
+        return TokenData(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=settings.access_token_expire_minutes * 60
+        )
