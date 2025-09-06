@@ -7,6 +7,7 @@ from app.repositories.budget_repository import BudgetRepository
 from app.schemas.budget import BudgetCreate, BudgetUpdate
 from app.models.budget import Budget
 from app.core.exceptions import NotFoundError, ConflictError, ValidationError
+from app.constants.messages import BudgetMessages
 
 
 class BudgetService:
@@ -25,7 +26,7 @@ class BudgetService:
             user_id, budget_data.category_id, month_date
         )
         if existing:
-            raise ConflictError("Budget already exists for this category and month")
+            raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
         budget_dict = budget_data.model_dump(exclude={'month'})
         budget_dict.update({
@@ -36,15 +37,15 @@ class BudgetService:
         try:
             return self.repository.create(budget_dict)
         except IntegrityError:
-            raise ConflictError("Budget already exists for this category and month")
+            raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
     def update_budget(self, budget_id: int, user_id: int, budget_data: BudgetUpdate) -> Budget:
         budget = self.repository.get_by_id(budget_id)
         if not budget:
-            raise NotFoundError("Budget not found")
+            raise NotFoundError(BudgetMessages.NOT_FOUND.value)
 
         if budget.user_id != user_id:
-            raise NotFoundError("Budget not found")
+            raise NotFoundError(BudgetMessages.NOT_FOUND.value)
 
         update_data = budget_data.model_dump(exclude_unset=True)
         if 'month' in update_data:
@@ -53,12 +54,12 @@ class BudgetService:
         try:
             return self.repository.update(budget, update_data)
         except IntegrityError:
-            raise ConflictError("Budget already exists for this category and month")
+            raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
     def delete_budget(self, budget_id: int, user_id: int) -> bool:
         budget = self.repository.get_by_id(budget_id)
         if not budget or budget.user_id != user_id:
-            raise NotFoundError("Budget not found")
+            raise NotFoundError(BudgetMessages.NOT_FOUND.value)
 
         return self.repository.delete(budget_id)
 
@@ -66,4 +67,4 @@ class BudgetService:
         try:
             return datetime.strptime(month, "%Y-%m").replace(day=1).date()
         except ValueError:
-            raise ValidationError("Invalid month format. Use YYYY-MM format (e.g., '2025-09')")
+            raise ValidationError(BudgetMessages.INVALID_MONTH_FORMAT.value)

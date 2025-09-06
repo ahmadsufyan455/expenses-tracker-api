@@ -8,6 +8,7 @@ from app.models.transaction import Transaction, TransactionType
 from app.repositories.budget_repository import BudgetRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
+from app.constants.messages import TransactionMessages
 
 
 class TransactionService:
@@ -36,10 +37,10 @@ class TransactionService:
     def update_transaction(self, transaction_id: int, user_id: int, transaction_data: TransactionUpdate) -> Transaction:
         transaction = self.repository.get_by_id(transaction_id)
         if not transaction:
-            raise NotFoundError("Transaction not found")
+            raise NotFoundError(TransactionMessages.NOT_FOUND.value)
 
         if transaction.user_id != user_id:
-            raise NotFoundError("Transaction not found")
+            raise NotFoundError(TransactionMessages.NOT_FOUND.value)
 
         # Determine effective values after applying the update (fallback to current values)
         update_data = transaction_data.model_dump(exclude_unset=True)
@@ -74,21 +75,19 @@ class TransactionService:
         elif (not original_is_expense) and effective_is_expense:
             # Newly becoming an expense: require and deduct from budget
             self._handle_non_expense_to_expense(user_id, effective_category_id, month_date, effective_amount)
-        # else: neither original nor effective is expense -> no budget changes
 
         return self.repository.update(transaction, update_data)
 
     def delete_transaction(self, transaction_id: int, user_id: int) -> bool:
         transaction = self.repository.get_by_id(transaction_id)
         if not transaction:
-            raise NotFoundError("Transaction not found")
+            raise NotFoundError(TransactionMessages.NOT_FOUND.value)
 
         if transaction.user_id != user_id:
-            raise NotFoundError("Transaction not found")
+            raise NotFoundError(TransactionMessages.NOT_FOUND.value)
 
         return self.repository.delete(transaction_id)
 
-    # -------- Helper utilities (private) --------
     @staticmethod
     def _month_start_now():
         return datetime.now().replace(day=1).date()
@@ -96,16 +95,12 @@ class TransactionService:
     def _require_budget(self, user_id: int, category_id: int, month_date):
         budget = self.budget_repository.get_by_user_and_category_and_month(user_id, category_id, month_date)
         if not budget:
-            raise ValidationError(
-                "You must create a budget for this category in the current month before proceeding"
-            )
+            raise ValidationError(TransactionMessages.INVALID_BUDGET_NOT_FOUND.value)
         return budget
 
     def _deduct_from_budget(self, budget, amount: int):
         if amount > budget.amount:
-            raise ValidationError(
-                "This update exceeds your remaining budget for this category this month. Please adjust your budget or reduce the amount."
-            )
+            raise ValidationError(TransactionMessages.EXCEEDED_LIMIT.value)
         self.budget_repository.update(budget, {"amount": budget.amount - amount})
 
     def _refund_to_budget(self, budget, amount: int):

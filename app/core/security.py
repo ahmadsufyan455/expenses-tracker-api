@@ -8,6 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.config.settings import settings
 from app.core.exceptions import UnauthorizedError
+from app.constants.messages import AuthMessages
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -54,10 +55,10 @@ def verify_token(token: str) -> dict:
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> Optional[dict]:
     token = credentials.credentials if credentials else None
     if not token:
-        raise UnauthorizedError("Unauthorized")
+        raise UnauthorizedError(AuthMessages.UNAUTHORIZED.value)
 
     payload = verify_token(token)
     if payload is None:
-        raise UnauthorizedError("Unauthorized")
+        raise UnauthorizedError(AuthMessages.UNAUTHORIZED.value)
 
     return payload

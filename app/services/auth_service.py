@@ -9,6 +9,8 @@ from app.core.security import create_access_token, verify_password, get_password
 from app.schemas.user import UserCreate
 from app.config.settings import settings
 from app.utils.validation import is_password_length_valid
+from app.constants.messages import AuthMessages
+from app.constants.messages import ValidationMessages
 
 
 class AuthService:
@@ -17,10 +19,10 @@ class AuthService:
 
     def create_user(self, user_data: UserCreate) -> User:
         if self.repository.email_exists(user_data.email):
-            raise ConflictError("Email already exists")
+            raise ConflictError(AuthMessages.ALREADY_EXISTS.value)
 
         if not is_password_length_valid(user_data.password):
-            raise ValidationError("Password must be at least 8 characters long")
+            raise ValidationError(ValidationMessages.PASSWORD_TOO_SHORT.value)
 
         hashed_password = get_password_hash(user_data.password)
 
@@ -30,16 +32,16 @@ class AuthService:
         try:
             return self.repository.create(user_dict)
         except IntegrityError:
-            raise ConflictError("Email already exists")
+            raise ConflictError(AuthMessages.ALREADY_EXISTS.value)
 
     def authenticate_user(self, login_data: LoginRequest) -> TokenData:
         user = self.repository.get_by_email(login_data.email)
 
         if not user:
-            raise NotFoundError("User not found")
+            raise NotFoundError(AuthMessages.USER_NOT_FOUND.value)
 
         if not verify_password(login_data.password, user.hashed_password):
-            raise UnauthorizedError("Invalid password")
+            raise UnauthorizedError(AuthMessages.INVALID_PASSWORD.value)
 
         access_token = create_access_token(
             user_id=user.id,

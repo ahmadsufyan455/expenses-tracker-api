@@ -4,6 +4,7 @@ from app.api.v1 import router
 from app.core.dependencies import UserServiceDep, CurrentUserDep
 from app.core.responses import SuccessResponse
 from app.schemas.user import PasswordChange, UserResponse, UserUpdate
+from app.constants.messages import UserMessages
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ async def get_user(
 ) -> SuccessResponse:
     user = user_service.get_user_by_id(current_user["user_id"])
     user_response = UserResponse.model_validate(user)
-    return SuccessResponse(message="Profile fetched successfully", data=user_response)
+    return SuccessResponse(message=UserMessages.RETRIEVED_SUCCESS.value, data=user_response)
 
 
 @router.put("/", status_code=status.HTTP_200_OK)
@@ -26,7 +27,7 @@ async def update_user(
 ) -> SuccessResponse:
     user = user_service.update_user(current_user["user_id"], user_data)
     user_response = UserResponse.model_validate(user)
-    return SuccessResponse(message="Profile updated successfully", data=user_response)
+    return SuccessResponse(message=UserMessages.UPDATED_SUCCESS.value, data=user_response)
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
@@ -44,4 +45,4 @@ async def change_password(
     password_data: PasswordChange
 ) -> SuccessResponse:
     user_service.change_password(current_user["user_id"], password_data.current_password, password_data.new_password)
-    return SuccessResponse(message="Password changed successfully")
+    return SuccessResponse(message=UserMessages.PASSWORD_CHANGED_SUCCESS.value)

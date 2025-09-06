@@ -2,6 +2,7 @@ from fastapi import APIRouter, status
 from app.core.dependencies import CategoryServiceDep, CurrentUserDep
 from app.core.responses import SuccessResponse
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
+from app.constants.messages import CategoryMessages
 
 router = APIRouter()
 
@@ -13,7 +14,7 @@ async def get_categories(
 ) -> SuccessResponse:
     categories = category_service.get_user_categories(current_user["user_id"])
     category_responses = [CategoryResponse.model_validate(category) for category in categories]
-    return SuccessResponse(message="Categories retrieved successfully", data=category_responses)
+    return SuccessResponse(message=CategoryMessages.RETRIEVED_SUCCESS.value, data=category_responses)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -24,7 +25,7 @@ async def create_category(
 ) -> SuccessResponse:
     category = category_service.create_category(current_user["user_id"], category_data)
     category_response = CategoryResponse.model_validate(category)
-    return SuccessResponse(message="Category created successfully", data=category_response)
+    return SuccessResponse(message=CategoryMessages.CREATED_SUCCESS.value, data=category_response)
 
 
 @router.put("/{category_id}", status_code=status.HTTP_200_OK)
@@ -36,7 +37,7 @@ async def update_category(
 ) -> SuccessResponse:
     category = category_service.update_category(category_id, current_user["user_id"], category_data)
     category_response = CategoryResponse.model_validate(category)
-    return SuccessResponse(message="Category updated successfully", data=category_response)
+    return SuccessResponse(message=CategoryMessages.UPDATED_SUCCESS.value, data=category_response)
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)

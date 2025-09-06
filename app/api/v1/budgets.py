@@ -3,6 +3,7 @@ from fastapi import APIRouter, status
 from app.core.dependencies import BudgetServiceDep, CurrentUserDep
 from app.core.responses import SuccessResponse
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate
+from app.constants.messages import BudgetMessages
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ async def get_budgets(
     budgets = budget_service.get_user_budgets(current_user["user_id"])
     budget_responses = [BudgetResponse.model_validate(budget) for budget in budgets]
     return SuccessResponse(
-        message="Budgets fetched successfully",
+        message=BudgetMessages.RETRIEVED_SUCCESS.value,
         data=budget_responses
     )
 
@@ -29,7 +30,7 @@ async def create_budget(
     budget = budget_service.create_budget(current_user["user_id"], budget_data)
     budget_response = BudgetResponse.model_validate(budget)
     return SuccessResponse(
-        message="Budget created successfully",
+        message=BudgetMessages.CREATED_SUCCESS.value,
         data=budget_response
     )
 
@@ -44,7 +45,7 @@ async def update_budget(
     budget = budget_service.update_budget(budget_id, current_user["user_id"], budget_data)
     budget_response = BudgetResponse.from_orm(budget)
     return SuccessResponse(
-        message="Budget updated successfully",
+        message=BudgetMessages.UPDATED_SUCCESS.value,
         data=budget_response
     )
 

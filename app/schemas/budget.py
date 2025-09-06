@@ -1,11 +1,12 @@
 from typing import Optional
 from pydantic import BaseModel, Field
 from datetime import date
+from app.constants.messages import ValidationMessages
 
 
 class BudgetBase(BaseModel):
     category_id: int
-    amount: int = Field(gt=0, description="Amount must be greater than 0")
+    amount: int = Field(gt=0, description=ValidationMessages.INVALID_AMOUNT.value)
 
 
 class BudgetCreate(BudgetBase):
