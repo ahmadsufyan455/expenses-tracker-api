@@ -19,13 +19,17 @@ class PaymentMethod(Enum):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    user_id = Column(Integer, ForeignKey("users.id"))
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     amount = Column(Integer)
-    type = Column(SQLEnum(TransactionType), nullable=False)
+    type = Column(SQLEnum(TransactionType), nullable=False, index=True)
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False)
     description = Column(String, nullable=True)
 
     # Relationships
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
+    
+    @property
+    def category_name(self) -> str:
+        return self.category.name if self.category else ""

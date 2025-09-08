@@ -1,6 +1,6 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Query
 from app.core.dependencies import TransactionServiceDep, CurrentUserDep
-from app.core.responses import SuccessResponse
+from app.core.responses import SuccessResponse, PaginatedResponse
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, TransactionResponse
 from app.constants.messages import TransactionMessages
 
@@ -10,11 +10,25 @@ router = APIRouter()
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_transactions(
     transaction_service: TransactionServiceDep,
-    current_user: CurrentUserDep
-) -> SuccessResponse:
-    transactions = transaction_service.get_user_transactions(current_user["user_id"])
+    current_user: CurrentUserDep,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100)
+) -> PaginatedResponse:
+    skip = (page - 1) * per_page
+
+    transactions, total = transaction_service.get_user_transactions_with_category(
+        current_user["user_id"],
+        skip,
+        per_page
+    )
     transaction_responses = [TransactionResponse.model_validate(transaction) for transaction in transactions]
-    return SuccessResponse(message=TransactionMessages.RETRIEVED_SUCCESS.value, data=transaction_responses)
+    return PaginatedResponse(
+        message=TransactionMessages.RETRIEVED_SUCCESS.value,
+        data=transaction_responses,
+        total=total,
+        page=page,
+        per_page=per_page
+    )
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

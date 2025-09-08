@@ -13,7 +13,7 @@ class UserRepository(BaseRepository[User]):
         return self.db.query(User).filter(User.email == email).first()
 
     def email_exists(self, email: str, exclude_user_id: Optional[int] = None) -> bool:
-        query = self.db.query(User).filter(User.email == email)
+        query = self.db.query(User.id).filter(User.email == email)
         if exclude_user_id:
             query = query.filter(User.id != exclude_user_id)
         return query.first() is not None

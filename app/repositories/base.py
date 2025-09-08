@@ -12,8 +12,8 @@ class BaseRepository(Generic[ModelType]):
     def get_by_id(self, id: int) -> Optional[ModelType]:
         return self.db.query(self.model).filter(self.model.id == id).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
-        return self.db.query(self.model).offset(skip).limit(limit).all()
+    def get_by_user_id(self, user_id: int) -> List[ModelType]:
+        return self.db.query(self.model).filter(self.model.user_id == user_id).all()
 
     def create(self, obj_in: dict) -> ModelType:
         db_obj = self.model(**obj_in)
@@ -21,6 +21,14 @@ class BaseRepository(Generic[ModelType]):
         self.db.commit()
         self.db.refresh(db_obj)
         return db_obj
+
+    def bulk_create(self, objects: List[dict]) -> List[ModelType]:
+        db_objects = [self.model(**obj) for obj in objects]
+        self.db.add_all(db_objects)
+        self.db.commit()
+        for obj in db_objects:
+            self.db.refresh(obj)
+        return db_objects
 
     def update(self, db_obj: ModelType, obj_in: dict) -> ModelType:
         for field, value in obj_in.items():
@@ -37,6 +45,3 @@ class BaseRepository(Generic[ModelType]):
             self.db.commit()
             return True
         return False
-
-    def get_by_user_id(self, user_id: int) -> List[ModelType]:
-        return self.db.query(self.model).filter(self.model.user_id == user_id).all()

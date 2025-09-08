@@ -6,13 +6,13 @@ from app.models.transaction import TransactionType, PaymentMethod
 
 class TransactionBase(BaseModel):
     amount: int
-    category_id: int
     type: TransactionType
     payment_method: PaymentMethod
     description: Optional[str] = None
 
 
 class TransactionCreate(TransactionBase):
+    category_id: int
     pass
 
 
@@ -26,6 +26,7 @@ class TransactionUpdate(BaseModel):
 
 class TransactionResponse(TransactionBase):
     id: int
+    category_name: str
 
     model_config = {
         "from_attributes": True

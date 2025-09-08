@@ -16,8 +16,14 @@ class TransactionService:
         self.repository = TransactionRepository(db)
         self.budget_repository = BudgetRepository(db)
 
-    def get_user_transactions(self, user_id: int) -> List[Transaction]:
-        return self.repository.get_by_user_id(user_id)
+    def get_user_transactions_with_category(self, user_id: int, skip: int = 0, limit: int = 100):
+        # Get total count
+        total = self.repository.count_by_user_id(user_id)
+
+        # Get paginated transactions
+        transactions = self.repository.get_transaction_with_category(user_id=user_id, skip=skip, limit=limit)
+
+        return transactions, total
 
     def create_transaction(self, user_id: int, transaction_data: TransactionCreate) -> Transaction:
         # Enforce strict validation and budget deduction for EXPENSE transactions
