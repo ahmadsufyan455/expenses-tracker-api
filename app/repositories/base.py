@@ -22,14 +22,6 @@ class BaseRepository(Generic[ModelType]):
         self.db.refresh(db_obj)
         return db_obj
 
-    def bulk_create(self, objects: List[dict]) -> List[ModelType]:
-        db_objects = [self.model(**obj) for obj in objects]
-        self.db.add_all(db_objects)
-        self.db.commit()
-        for obj in db_objects:
-            self.db.refresh(obj)
-        return db_objects
-
     def update(self, db_obj: ModelType, obj_in: dict) -> ModelType:
         for field, value in obj_in.items():
             if hasattr(db_obj, field):
