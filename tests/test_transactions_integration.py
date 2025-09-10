@@ -19,6 +19,9 @@ class TestTransactionEndpoints:
 
         assert data["message"] == TransactionMessages.RETRIEVED_SUCCESS.value
         assert data["data"] == []
+        assert data["total"] == 0
+        assert data["page"] == 1
+        assert data["per_page"] == 20
 
     def test_create_income_transaction_success(self, client: TestClient, authenticated_user, created_category):
         """Test successful income transaction creation (no budget required)"""
@@ -42,7 +45,7 @@ class TestTransactionEndpoints:
         assert data["message"] == TransactionMessages.CREATED_SUCCESS.value
         transaction_response = data["data"]
         assert transaction_response["amount"] == transaction_data["amount"]
-        assert transaction_response["category_id"] == transaction_data["category_id"]
+        assert "category_name" in transaction_response
         assert transaction_response["type"] == transaction_data["type"]
         assert transaction_response["payment_method"] == transaction_data["payment_method"]
         assert transaction_response["description"] == transaction_data["description"]
@@ -186,6 +189,9 @@ class TestTransactionEndpoints:
         assert data["message"] == TransactionMessages.RETRIEVED_SUCCESS.value
         assert len(data["data"]) == 1
         assert data["data"][0]["amount"] == transaction_data["amount"]
+        assert data["total"] == 1
+        assert data["page"] == 1
+        assert data["per_page"] == 20
 
     def test_update_transaction_success(self, client: TestClient, authenticated_user, created_category):
         """Test successful transaction update"""
@@ -334,7 +340,9 @@ class TestTransactionEndpoints:
             "/api/v1/transactions/",
             headers=authenticated_user["headers"]
         )
-        assert len(get_response.json()["data"]) == 0
+        data = get_response.json()
+        assert len(data["data"]) == 0
+        assert data["total"] == 0
 
     def test_delete_transaction_not_found(self, client: TestClient, authenticated_user):
         """Test deleting non-existent transaction"""
