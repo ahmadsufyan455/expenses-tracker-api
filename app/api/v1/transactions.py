@@ -46,7 +46,7 @@ async def create_transaction(
     return SuccessResponse(message=TransactionMessages.CREATED_SUCCESS.value, data=transaction_response)
 
 
-@router.put("/{transaction_id}/update", status_code=status.HTTP_200_OK)
+@router.put("/{transaction_id}", status_code=status.HTTP_200_OK)
 async def update_transaction(
     transaction_service: TransactionServiceDep,
     current_user: CurrentUserDep,
@@ -58,7 +58,7 @@ async def update_transaction(
     return SuccessResponse(message=TransactionMessages.UPDATED_SUCCESS.value, data=transaction_response)
 
 
-@router.delete("/{transaction_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_transaction(
     transaction_service: TransactionServiceDep,
     current_user: CurrentUserDep,
