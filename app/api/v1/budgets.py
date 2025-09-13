@@ -43,7 +43,7 @@ async def update_budget(
     current_user: CurrentUserDep
 ) -> SuccessResponse:
     budget = budget_service.update_budget(budget_id, current_user["user_id"], budget_data)
-    budget_response = BudgetResponse.from_orm(budget)
+    budget_response = BudgetResponse.model_validate(budget)
     return SuccessResponse(
         message=BudgetMessages.UPDATED_SUCCESS.value,
         data=budget_response

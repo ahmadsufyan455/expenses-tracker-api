@@ -14,7 +14,7 @@ async def get_transactions(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order: asc or desc")
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: asc or desc")
 ) -> PaginatedResponse:
     skip = (page - 1) * per_page
 
