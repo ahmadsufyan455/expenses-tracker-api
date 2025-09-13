@@ -12,14 +12,18 @@ async def get_transactions(
     transaction_service: TransactionServiceDep,
     current_user: CurrentUserDep,
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100)
+    per_page: int = Query(20, ge=1, le=100),
+    sort_by: str = Query("created_at", description="Field to sort by"),
+    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order: asc or desc")
 ) -> PaginatedResponse:
     skip = (page - 1) * per_page
 
     transactions, total = transaction_service.get_user_transactions_with_category(
         current_user["user_id"],
         skip,
-        per_page
+        per_page,
+        sort_by,
+        sort_order
     )
     transaction_responses = [TransactionResponse.model_validate(transaction) for transaction in transactions]
     return PaginatedResponse(

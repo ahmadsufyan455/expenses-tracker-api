@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-
+from datetime import datetime
 from app.models.transaction import TransactionType, PaymentMethod
 
 
@@ -27,6 +27,8 @@ class TransactionUpdate(BaseModel):
 class TransactionResponse(TransactionBase):
     id: int
     category_name: str
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {
         "from_attributes": True
