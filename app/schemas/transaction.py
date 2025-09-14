@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.models.transaction import TransactionType, PaymentMethod
+from .category import CategoryResponse
 
 
 class TransactionBase(BaseModel):
@@ -26,7 +27,7 @@ class TransactionUpdate(BaseModel):
 
 class TransactionResponse(TransactionBase):
     id: int
-    category_name: str
+    category: CategoryResponse
     created_at: datetime
     updated_at: datetime
 

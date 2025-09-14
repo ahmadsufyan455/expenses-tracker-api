@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 
 from sqlalchemy.orm import Session
 
@@ -7,25 +6,32 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.models.transaction import Transaction, TransactionType
 from app.repositories.budget_repository import BudgetRepository
 from app.repositories.transaction_repository import TransactionRepository
+from app.repositories.category_repository import CategoryRepository
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
-from app.constants.messages import TransactionMessages
+from app.constants.messages import CategoryMessages, TransactionMessages
 
 
 class TransactionService:
     def __init__(self, db: Session):
         self.repository = TransactionRepository(db)
         self.budget_repository = BudgetRepository(db)
+        self.category_repository = CategoryRepository(db)
 
     def get_user_transactions_with_category(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc"):
         # Get total count
         total = self.repository.count_by_user_id(user_id)
 
         # Get paginated transactions
-        transactions = self.repository.get_transaction_with_category(user_id=user_id, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order)
+        transactions = self.repository.get_transaction_with_category(
+            user_id=user_id, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order)
 
         return transactions, total
 
     def create_transaction(self, user_id: int, transaction_data: TransactionCreate) -> Transaction:
+        # Check if category exists before creating the transaction
+        category = self.category_repository.get_by_id(transaction_data.category_id)
+        if not category:
+            raise NotFoundError(CategoryMessages.NOT_FOUND.value)
         # Enforce strict validation and budget deduction for EXPENSE transactions
         if transaction_data.type == TransactionType.EXPENSE:
             month_date = self._month_start_now()
@@ -38,6 +44,7 @@ class TransactionService:
         transaction_dict.update({
             'user_id': user_id
         })
+
         return self.repository.create(transaction_dict)
 
     def update_transaction(self, transaction_id: int, user_id: int, transaction_data: TransactionUpdate) -> Transaction:

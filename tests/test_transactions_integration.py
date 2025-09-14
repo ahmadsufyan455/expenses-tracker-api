@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.constants.messages import TransactionMessages, BudgetMessages
+from app.constants.messages import TransactionMessages, BudgetMessages, CategoryMessages
 
 
 class TestTransactionEndpoints:
@@ -45,7 +45,9 @@ class TestTransactionEndpoints:
         assert data["message"] == TransactionMessages.CREATED_SUCCESS.value
         transaction_response = data["data"]
         assert transaction_response["amount"] == transaction_data["amount"]
-        assert "category_name" in transaction_response
+        assert "category" in transaction_response
+        assert "name" in transaction_response["category"]
+        assert "id" in transaction_response["category"]
         assert transaction_response["type"] == transaction_data["type"]
         assert transaction_response["payment_method"] == transaction_data["payment_method"]
         assert transaction_response["description"] == transaction_data["description"]
@@ -139,8 +141,9 @@ class TestTransactionEndpoints:
             headers=authenticated_user["headers"]
         )
 
-        # Note: Invalid category might be accepted in current implementation
-        assert response.status_code in [201, 400, 422]  # Accept various behaviors
+        assert response.status_code == 404
+        data = response.json()
+        assert data["message"] == CategoryMessages.NOT_FOUND.value
 
     def test_create_transaction_invalid_data(self, client: TestClient, authenticated_user, created_category):
         """Test creating transaction with invalid data"""
@@ -219,7 +222,7 @@ class TestTransactionEndpoints:
         }
 
         response = client.put(
-            f"/api/v1/transactions/{transaction_id}/update",
+            f"/api/v1/transactions/{transaction_id}",
             json=update_data,
             headers=authenticated_user["headers"]
         )
@@ -239,7 +242,7 @@ class TestTransactionEndpoints:
         }
 
         response = client.put(
-            "/api/v1/transactions/999/update",
+            "/api/v1/transactions/999",
             json=update_data,
             headers=authenticated_user["headers"]
         )
@@ -268,7 +271,7 @@ class TestTransactionEndpoints:
         # Try to update without auth
         update_data = {"amount": 6000}
         response = client.put(
-            f"/api/v1/transactions/{transaction_id}/update",
+            f"/api/v1/transactions/{transaction_id}",
             json=update_data
         )
         assert response.status_code == 401
@@ -299,7 +302,7 @@ class TestTransactionEndpoints:
         }
 
         response = client.put(
-            f"/api/v1/transactions/{transaction_id}/update",
+            f"/api/v1/transactions/{transaction_id}",
             json=update_data,
             headers=authenticated_user["headers"]
         )
@@ -329,7 +332,7 @@ class TestTransactionEndpoints:
 
         # Delete the transaction
         response = client.delete(
-            f"/api/v1/transactions/{transaction_id}/delete",
+            f"/api/v1/transactions/{transaction_id}",
             headers=authenticated_user["headers"]
         )
 
@@ -347,7 +350,7 @@ class TestTransactionEndpoints:
     def test_delete_transaction_not_found(self, client: TestClient, authenticated_user):
         """Test deleting non-existent transaction"""
         response = client.delete(
-            "/api/v1/transactions/999/delete",
+            "/api/v1/transactions/999",
             headers=authenticated_user["headers"]
         )
 
@@ -373,5 +376,5 @@ class TestTransactionEndpoints:
         transaction_id = create_response.json()["data"]["id"]
 
         # Try to delete without auth
-        response = client.delete(f"/api/v1/transactions/{transaction_id}/delete")
+        response = client.delete(f"/api/v1/transactions/{transaction_id}")
         assert response.status_code == 401
