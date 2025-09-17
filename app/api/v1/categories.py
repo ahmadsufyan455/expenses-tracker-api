@@ -7,13 +7,22 @@ from app.constants.messages import CategoryMessages
 router = APIRouter()
 
 
+def _convert_to_category_response(raw_category):
+    """Convert raw query result to CategoryResponse"""
+    return CategoryResponse(
+        id=raw_category.id,
+        name=raw_category.name,
+        usage_count=raw_category.usage_count
+    )
+
+
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_categories(
     category_service: CategoryServiceDep,
     current_user: CurrentUserDep
 ) -> SuccessResponse:
     categories = category_service.get_user_categories(current_user["user_id"])
-    category_responses = [CategoryResponse.model_validate(category) for category in categories]
+    category_responses = [_convert_to_category_response(category) for category in categories]
     return SuccessResponse(message=CategoryMessages.RETRIEVED_SUCCESS.value, data=category_responses)
 
 
@@ -24,7 +33,7 @@ async def create_category(
     category_data: CategoryCreate
 ) -> SuccessResponse:
     category = category_service.create_category(current_user["user_id"], category_data)
-    category_response = CategoryResponse.model_validate(category)
+    category_response = _convert_to_category_response(category)
     return SuccessResponse(message=CategoryMessages.CREATED_SUCCESS.value, data=category_response)
 
 
@@ -36,7 +45,7 @@ async def update_category(
     category_data: CategoryUpdate
 ) -> SuccessResponse:
     category = category_service.update_category(category_id, current_user["user_id"], category_data)
-    category_response = CategoryResponse.model_validate(category)
+    category_response = _convert_to_category_response(category)
     return SuccessResponse(message=CategoryMessages.UPDATED_SUCCESS.value, data=category_response)
 
 

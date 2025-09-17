@@ -124,7 +124,11 @@ def created_category(client, authenticated_user, sample_category_data):
         headers=authenticated_user["headers"]
     )
     assert response.status_code == 201
-    return response.json()["data"]
+    category_data = response.json()["data"]
+    # Ensure the fixture returns data with usage_count
+    assert "usage_count" in category_data
+    assert category_data["usage_count"] == 0
+    return category_data
 
 
 @pytest.fixture

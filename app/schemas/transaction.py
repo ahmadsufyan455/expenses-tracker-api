@@ -27,7 +27,7 @@ class TransactionUpdate(BaseModel):
 
 class TransactionResponse(TransactionBase):
     id: int
-    category: CategoryResponse
+    category: Optional[CategoryResponse] = None
     created_at: datetime
     updated_at: datetime
 

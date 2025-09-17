@@ -13,6 +13,7 @@ class CategoryUpdate(BaseModel):
 class CategoryResponse(BaseModel):
     id: int
     name: str
+    usage_count: Optional[int] = None
 
     model_config = {
         "from_attributes": True
