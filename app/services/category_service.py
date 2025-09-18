@@ -4,11 +4,13 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.repositories.category_repository import CategoryRepository
 from app.schemas.category import CategoryCreate, CategoryUpdate
 from app.constants.messages import CategoryMessages
+from app.repositories.transaction_repository import TransactionRepository
 
 
 class CategoryService:
     def __init__(self, db: Session):
         self.repository = CategoryRepository(db)
+        self.transaction_repository = TransactionRepository(db)
 
     def get_user_categories(self, user_id: int):
         return self.repository.get_category_with_usage_count(user_id)
@@ -50,5 +52,10 @@ class CategoryService:
 
         if category.user_id != user_id:
             raise NotFoundError(CategoryMessages.NOT_FOUND.value)
+
+        # Check if category has transactions
+        transaction_count = self.transaction_repository.count_by_category_id(category_id)
+        if transaction_count > 0:
+            raise ConflictError(CategoryMessages.CANNOT_DELETE_HAS_TRANSACTIONS.value)
 
         return self.repository.delete(category_id)

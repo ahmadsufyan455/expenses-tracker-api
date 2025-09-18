@@ -54,6 +54,7 @@ class CategoryMessages(Enum):
     RETRIEVED_SUCCESS = "Categories retrieved successfully"
     NOT_FOUND = "Category not found"
     ALREADY_EXISTS = "Category already exists"
+    CANNOT_DELETE_HAS_TRANSACTIONS = "Cannot delete category: it has existing transactions. Please delete or reassign transactions first"
 
 
 class ErrorMessages(Enum):

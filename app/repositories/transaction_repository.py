@@ -27,3 +27,7 @@ class TransactionRepository(BaseRepository[Transaction]):
 
     def count_by_user_id(self, user_id: int) -> int:
         return self.db.query(Transaction).filter(Transaction.user_id == user_id).count()
+
+    def count_by_category_id(self, category_id: int) -> int:
+        """Count transactions for a specifict category"""
+        return self.db.query(Transaction).filter(Transaction.category_id == category_id).count()

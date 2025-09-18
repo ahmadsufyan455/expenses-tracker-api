@@ -407,3 +407,30 @@ class TestCategoryEndpoints:
         assert response.status_code == 200
         categories = response.json()["data"]
         assert categories[0]["usage_count"] == 2
+
+    def test_delete_category_with_transactions_should_fail(self, client, authenticated_user, created_category, created_budget):
+        """Test that deleting category with transactions fails"""
+        # Create transaction
+        transaction_data = {
+            "amount": 2500,
+            "category_id": created_category["id"],
+            "type": "expense",
+            "payment_method": "cash",
+            "description": "Test transaction"
+        }
+        response = client.post(
+            "/api/v1/transactions/",
+            json=transaction_data,
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 201
+
+        # Try to delete category
+        response = client.delete(f"/api/v1/categories/{created_category['id']}", headers=authenticated_user["headers"])
+        assert response.status_code == 409  # Conflict
+        assert "existing transactions" in response.json()["message"].lower()
+
+    def test_delete_category_without_transactions_should_succeed(self, client, authenticated_user, created_category):
+        """Test that deleting category without transactions succeeds"""
+        response = client.delete(f"/api/v1/categories/{created_category['id']}", headers=authenticated_user["headers"])
+        assert response.status_code == 204
