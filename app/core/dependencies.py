@@ -6,6 +6,7 @@ from app.config.database import get_db
 from app.services.auth_service import AuthService
 from app.services.budget_service import BudgetService
 from app.services.category_service import CategoryService
+from app.services.dashboard_service import DashboardService
 from app.services.transaction_service import TransactionService
 from app.services.user_service import UserService
 from app.core.security import get_current_user
@@ -40,9 +41,14 @@ def get_category_service(db: DatabaseDep) -> CategoryService:
     return CategoryService(db)
 
 
+def get_dashboard_service(db: DatabaseDep) -> DashboardService:
+    return DashboardService(db)
+
+
 # Typed service dependencies
 BudgetServiceDep = Annotated[BudgetService, Depends(get_budget_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 TransactionServiceDep = Annotated[TransactionService, Depends(get_transaction_service)]
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 CategoryServiceDep = Annotated[CategoryService, Depends(get_category_service)]
+DashboardServiceDep = Annotated[DashboardService, Depends(get_dashboard_service)]

@@ -62,3 +62,8 @@ class ErrorMessages(Enum):
     NOT_FOUND = "Resource not found"
     FORBIDDEN = "Access forbidden"
     BAD_REQUEST = "Bad request"
+
+
+class DashboardMessages(Enum):
+    RETRIEVED_SUCCESS = "Dashboard data retrieved successfully"
+    INVALID_MONTH_FORMAT = "Invalid month format. Use YYYY-MM"
