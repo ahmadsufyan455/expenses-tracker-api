@@ -78,15 +78,26 @@ class DashboardRepository:
 
         return result
 
-    def get_recent_transactions(self, user_id: int, limit: int = 5) -> List[Dict[str, Any]]:
-        transactions = self.db.query(
+    def get_recent_transactions(self, user_id: int, limit: int = 5, year: Optional[int] = None, month: Optional[int] = None) -> List[Dict[str, Any]]:
+        query = self.db.query(
             Transaction,
             Category.name.label('category_name')
         ).join(
             Category, Transaction.category_id == Category.id
         ).filter(
             Transaction.user_id == user_id
-        ).order_by(
+        )
+
+        # Add month/year filtering if provided
+        if year is not None and month is not None:
+            query = query.filter(
+                and_(
+                    extract('year', Transaction.created_at) == year,
+                    extract('month', Transaction.created_at) == month
+                )
+            )
+
+        transactions = query.order_by(
             Transaction.created_at.desc()
         ).limit(limit).all()
 

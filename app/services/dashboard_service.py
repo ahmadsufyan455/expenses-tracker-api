@@ -49,8 +49,8 @@ class DashboardService:
         budget_data = self.dashboard_repo.get_budgets_with_spending(user_id, year, month_num)
         budgets = [BudgetOverview(**budget) for budget in budget_data]
 
-        # Get recent transactions with configurable limit
-        transaction_data = self.dashboard_repo.get_recent_transactions(user_id, transaction_limit)
+        # Get recent transactions with configurable limit, filtered by month if provided
+        transaction_data = self.dashboard_repo.get_recent_transactions(user_id, transaction_limit, year, month_num)
         recent_transactions = [RecentTransaction(**trans) for trans in transaction_data]
 
         # Get top expenses with configurable limit
