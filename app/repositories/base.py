@@ -13,7 +13,7 @@ class BaseRepository(Generic[ModelType]):
         return self.db.query(self.model).filter(self.model.id == id).first()
 
     def get_by_user_id(self, user_id: int) -> List[ModelType]:
-        return self.db.query(self.model).filter(self.model.user_id == user_id).all()
+        return self.db.query(self.model).filter(self.model.user_id == user_id).order_by(self.model.id.desc()).all()
 
     def create(self, obj_in: dict) -> ModelType:
         db_obj = self.model(**obj_in)

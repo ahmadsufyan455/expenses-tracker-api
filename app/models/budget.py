@@ -1,12 +1,11 @@
 from sqlalchemy import Column, Integer, Date, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
-from app.config.database import Base
+from .base import Base
 
 
 class Budget(Base):
     __tablename__ = "budgets"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     amount = Column(Integer)

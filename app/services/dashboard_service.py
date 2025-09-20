@@ -15,7 +15,8 @@ class DashboardService:
         user_id: int,
         month: Optional[str] = None,
         transaction_limit: int = 5,
-        expense_limit: int = 3
+        expense_limit: int = 3,
+        budget_limit: int = 3
     ) -> DashboardData:
         if month:
             try:
@@ -46,7 +47,7 @@ class DashboardService:
         )
 
         # Get budgets with spending
-        budget_data = self.dashboard_repo.get_budgets_with_spending(user_id, year, month_num)
+        budget_data = self.dashboard_repo.get_budgets_with_spending(user_id, year, month_num, budget_limit)
         budgets = [BudgetOverview(**budget) for budget in budget_data]
 
         # Get recent transactions with configurable limit, filtered by month if provided

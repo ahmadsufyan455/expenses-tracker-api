@@ -35,7 +35,7 @@ class DashboardRepository:
             "total_expenses": expense_sum
         }
 
-    def get_budgets_with_spending(self, user_id: int, year: int, month: int) -> List[Dict[str, Any]]:
+    def get_budgets_with_spending(self, user_id: int, year: int, month: int, limit: int = 3) -> List[Dict[str, Any]]:
         month_date = date(year, month, 1)
 
         budgets = self.db.query(
@@ -65,7 +65,7 @@ class DashboardRepository:
                 Budget.user_id == user_id,
                 Budget.month == month_date
             )
-        ).group_by(Budget.id, Category.name).all()
+        ).group_by(Budget.id, Category.name).order_by(Budget.updated_at.desc()).limit(limit).all()
 
         result = []
         for budget, category_name, spent in budgets:

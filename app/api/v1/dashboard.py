@@ -14,13 +14,15 @@ async def get_dashboard(
     dashboard_service: DashboardServiceDep,
     month: Optional[str] = Query(None, description="Month in YYYY-MM format"),
     transaction_limit: int = Query(5, ge=1, le=50, description="Number of recent transactions to return"),
-    expense_limit: int = Query(3, ge=1, le=10, description="Number of top expense categories to return")
+    expense_limit: int = Query(3, ge=1, le=10, description="Number of top expense categories to return"),
+    budget_limit: int = Query(3, ge=1, le=10, description="Number of top budgets to return")
 ) -> SuccessResponse:
     dashboard_data = dashboard_service.get_dashboard_data(
         user_id=current_user["user_id"],
         month=month,
         transaction_limit=transaction_limit,
-        expense_limit=expense_limit
+        expense_limit=expense_limit,
+        budget_limit=budget_limit
     )
 
     return SuccessResponse(
