@@ -24,7 +24,7 @@ class CategoryRepository(BaseRepository[Category]):
             LEFT JOIN transactions t ON c.id = t.category_id
             WHERE c.user_id = :user_id
             GROUP BY c.id, c.name
-            ORDER BY usage_count DESC, id DESC
+            ORDER BY usage_count DESC, c.id DESC
         """
         ), {"user_id": user_id}).fetchall()
 
