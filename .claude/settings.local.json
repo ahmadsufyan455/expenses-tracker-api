@@ -5,7 +5,9 @@
       "Bash(source:*)",
       "Bash(unalias pip)",
       "Bash(unalias:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(python3:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []

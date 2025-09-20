@@ -13,8 +13,8 @@ async def get_budgets(
     budget_service: BudgetServiceDep,
     current_user: CurrentUserDep
 ) -> SuccessResponse:
-    budgets = budget_service.get_user_budgets(current_user["user_id"])
-    budget_responses = [BudgetResponse.model_validate(budget) for budget in budgets]
+    budgets_data = budget_service.get_user_budgets(current_user["user_id"])
+    budget_responses = [BudgetResponse.model_validate(budget_data) for budget_data in budgets_data]
     return SuccessResponse(
         message=BudgetMessages.RETRIEVED_SUCCESS.value,
         data=budget_responses
