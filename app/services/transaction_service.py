@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.transaction import Transaction, TransactionType
@@ -32,13 +33,13 @@ class TransactionService:
         category = self.category_repository.get_by_id(transaction_data.category_id)
         if not category:
             raise NotFoundError(CategoryMessages.NOT_FOUND.value)
-        # Enforce strict validation and budget deduction for EXPENSE transactions
+        # Enforce strict validation for EXPENSE transactions
         if transaction_data.type == TransactionType.EXPENSE:
             month_date = self._month_start_now()
             budget = self._require_budget(user_id, transaction_data.category_id, month_date)
 
             # Check remaining budget and prevent overspending
-            self._deduct_from_budget(budget, transaction_data.amount)
+            self._validate_budget_limit(budget, user_id, transaction_data.category_id, month_date, transaction_data.amount)
 
         transaction_dict = transaction_data.model_dump()
         transaction_dict.update({
@@ -63,31 +64,19 @@ class TransactionService:
 
         month_date = self._month_start_now()
 
-        # Budget adjustments depend on original and effective type/category/amount
-        original_is_expense = transaction.type == TransactionType.EXPENSE
+        # Validate budget limits for expense transactions
         effective_is_expense = effective_type == TransactionType.EXPENSE
 
-        if original_is_expense and effective_is_expense:
-            if effective_category_id == transaction.category_id:
-                # Same category: adjust by delta
-                delta = effective_amount - transaction.amount
-                self._handle_expense_to_expense_same_category(user_id, effective_category_id, month_date, delta)
-            else:
-                # Category changed: refund old, deduct new
-                self._handle_expense_to_expense_category_changed(
-                    user_id,
-                    transaction.category_id,
-                    effective_category_id,
-                    month_date,
-                    transaction.amount,
-                    effective_amount,
-                )
-        elif original_is_expense and not effective_is_expense:
-            # Refund the old expense back to its budget
-            self._handle_expense_to_non_expense(user_id, transaction.category_id, month_date, transaction.amount)
-        elif (not original_is_expense) and effective_is_expense:
-            # Newly becoming an expense: require and deduct from budget
-            self._handle_non_expense_to_expense(user_id, effective_category_id, month_date, effective_amount)
+        if effective_is_expense:
+            # For expense transactions, validate that the new amount doesn't exceed budget
+            budget = self._require_budget(user_id, effective_category_id, month_date)
+
+            # Calculate what the total spent would be after this update
+            current_spent = self._get_current_month_spending(user_id, effective_category_id, month_date, exclude_transaction_id=transaction_id)
+            new_total_spent = current_spent + effective_amount
+
+            if new_total_spent > budget.amount:
+                raise ValidationError(TransactionMessages.EXCEEDED_LIMIT.value)
 
         return self.repository.update(transaction, update_data)
 
@@ -111,42 +100,27 @@ class TransactionService:
             raise ValidationError(TransactionMessages.INVALID_BUDGET_NOT_FOUND.value)
         return budget
 
-    def _deduct_from_budget(self, budget, amount: int):
-        if amount > budget.amount:
+    def _validate_budget_limit(self, budget, user_id: int, category_id: int, month_date, amount: int):
+        """Validate that adding this expense amount won't exceed the budget limit"""
+        current_spent = self._get_current_month_spending(user_id, category_id, month_date)
+        new_total_spent = current_spent + amount
+
+        if new_total_spent > budget.amount:
             raise ValidationError(TransactionMessages.EXCEEDED_LIMIT.value)
-        self.budget_repository.update(budget, {"amount": budget.amount - amount})
 
-    def _refund_to_budget(self, budget, amount: int):
-        self.budget_repository.update(budget, {"amount": budget.amount + amount})
+    def _get_current_month_spending(self, user_id: int, category_id: int, month_date, exclude_transaction_id=None):
+        """Calculate total spending for a category in a specific month"""
+        query = self.repository.db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
+            Transaction.user_id == user_id,
+            Transaction.category_id == category_id,
+            Transaction.type == TransactionType.EXPENSE,
+            func.extract('year', Transaction.created_at) == month_date.year,
+            func.extract('month', Transaction.created_at) == month_date.month
+        )
 
-    def _handle_expense_to_expense_same_category(self, user_id: int, category_id: int, month_date, delta: int):
-        if delta == 0:
-            return
-        budget = self._require_budget(user_id, category_id, month_date)
-        if delta > 0:
-            self._deduct_from_budget(budget, delta)
-        else:
-            self._refund_to_budget(budget, -delta)
+        # Exclude specific transaction if updating
+        if exclude_transaction_id:
+            query = query.filter(Transaction.id != exclude_transaction_id)
 
-    def _handle_expense_to_expense_category_changed(
-            self,
-            user_id: int,
-            old_category_id: int,
-            new_category_id: int,
-            month_date,
-            old_amount: int,
-            new_amount: int,
-    ):
-        old_budget = self._require_budget(user_id, old_category_id, month_date)
-        self._refund_to_budget(old_budget, old_amount)
-
-        new_budget = self._require_budget(user_id, new_category_id, month_date)
-        self._deduct_from_budget(new_budget, new_amount)
-
-    def _handle_expense_to_non_expense(self, user_id: int, category_id: int, month_date, amount: int):
-        old_budget = self._require_budget(user_id, category_id, month_date)
-        self._refund_to_budget(old_budget, amount)
-
-    def _handle_non_expense_to_expense(self, user_id: int, category_id: int, month_date, amount: int):
-        new_budget = self._require_budget(user_id, category_id, month_date)
-        self._deduct_from_budget(new_budget, amount)
+        result = query.scalar()
+        return int(result) if result else 0

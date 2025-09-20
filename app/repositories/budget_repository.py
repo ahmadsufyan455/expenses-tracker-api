@@ -38,7 +38,7 @@ class BudgetRepository(BaseRepository[Budget]):
             (func.extract('month', Transaction.created_at) == func.extract('month', Budget.month))
         ).filter(
             Budget.user_id == user_id
-        ).group_by(Budget.id)
+        ).group_by(Budget.id).order_by(Budget.updated_at.desc())
 
         results = []
         for budget, total_spent in query.all():

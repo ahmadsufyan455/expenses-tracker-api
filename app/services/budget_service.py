@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.repositories.budget_repository import BudgetRepository
-from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetPrediction, PredictionType
+from app.schemas.budget import BudgetCreate, BudgetUpdate, PredictionType
 from app.models.budget import Budget
 from app.core.exceptions import NotFoundError, ConflictError, ValidationError
 from app.constants.messages import BudgetMessages
@@ -205,5 +205,5 @@ class BudgetService:
 
             if (budget_data.prediction_type == PredictionType.CUSTOM and
                 budget_data.prediction_days_count and
-                (budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31)):
+                    (budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31)):
                 raise ValidationError(BudgetMessages.PREDICTION_INVALID_CUSTOM_DAYS.value)

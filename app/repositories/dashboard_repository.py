@@ -65,7 +65,7 @@ class DashboardRepository:
                 Budget.user_id == user_id,
                 Budget.month == month_date
             )
-        ).group_by(Budget.id, Category.name).order_by(Budget.updated_at.desc()).limit(limit).all()
+        ).group_by(Budget.id, Category.name).order_by(func.coalesce(func.max(Transaction.created_at), '1900-01-01').desc()).limit(limit).all()
 
         result = []
         for budget, category_name, spent in budgets:
