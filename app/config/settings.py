@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     # Security
     secret_key: str
     algorithm: str
-    access_token_expire_minutes: int = 60
+    access_token_expire_minutes: int = (60 * 24) * 7
 
     # Application
     app_name: str = "Expense Tracker API"
