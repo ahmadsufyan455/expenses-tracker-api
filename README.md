@@ -24,6 +24,9 @@ A comprehensive RESTful API for personal expense tracking built with FastAPI, fe
 ### 📅 Budget Planning
 - **Monthly Budgets** - Set spending limits by category and month
 - **Budget Enforcement** - Prevents expense recording without corresponding budget
+- **Budget Predictions** - Calculate daily spending allowances based on remaining budget
+- **Multiple Prediction Types** - Daily, weekdays-only, weekends-only, or custom day counts
+- **Real-time Calculations** - Dynamic budget tracking with remaining balance
 - **Financial Discipline** - Encourages proactive budget planning
 - **Unique Constraints** - One budget per category per month
 
@@ -77,10 +80,19 @@ DELETE /api/v1/transactions/{id}/delete  # Delete transaction
 
 ### Budgets
 ```
-GET    /api/v1/budgets/            # Get user budgets
-POST   /api/v1/budgets/            # Create new budget
+GET    /api/v1/budgets/            # Get user budgets with predictions
+POST   /api/v1/budgets/            # Create new budget with prediction settings
 PUT    /api/v1/budgets/{id}        # Update budget
 DELETE /api/v1/budgets/{id}        # Delete budget
+```
+
+### Dashboard
+```
+GET    /api/v1/dashboard/          # Get comprehensive dashboard data
+       ?month=YYYY-MM             # Optional: filter by specific month
+       &transaction_limit=5       # Limit recent transactions (1-50)
+       &expense_limit=3           # Limit top expense categories (1-10)
+       &budget_limit=3            # Limit budget overview items (1-10)
 ```
 
 ## 🏗️ Project Structure
@@ -93,6 +105,7 @@ expenses-tracker/
 │   │       ├── auth.py      # Authentication endpoints
 │   │       ├── budgets.py   # Budget management
 │   │       ├── categories.py # Category management
+│   │       ├── dashboard.py  # Dashboard analytics
 │   │       ├── transactions.py # Transaction management
 │   │       ├── user.py      # User profile management
 │   │       └── router.py    # Main API router
@@ -116,18 +129,21 @@ expenses-tracker/
 │   │   ├── base.py          # Base repository
 │   │   ├── budget_repository.py
 │   │   ├── category_repository.py
+│   │   ├── dashboard_repository.py
 │   │   ├── transaction_repository.py
 │   │   └── user_repository.py
 │   ├── schemas/             # Pydantic schemas
 │   │   ├── auth.py          # Authentication schemas
 │   │   ├── budget.py        # Budget schemas
 │   │   ├── category.py      # Category schemas
+│   │   ├── dashboard.py     # Dashboard schemas
 │   │   ├── transaction.py   # Transaction schemas
 │   │   └── user.py          # User schemas
 │   ├── services/            # Business logic layer
 │   │   ├── auth_service.py  # Authentication service
 │   │   ├── budget_service.py # Budget service
 │   │   ├── category_service.py # Category service
+│   │   ├── dashboard_service.py # Dashboard service
 │   │   ├── transaction_service.py # Transaction service
 │   │   └── user_service.py  # User service
 │   ├── utils/               # Utilities
@@ -272,13 +288,15 @@ POST /api/v1/categories/
 }
 ```
 
-### 3. Set Monthly Budget
+### 3. Set Monthly Budget with Prediction
 ```bash
 POST /api/v1/budgets/
 {
   "category_id": 1,
   "amount": 50000,
-  "month": "2025-01"
+  "month": "2025-01",
+  "prediction_enabled": true,
+  "prediction_type": "daily"
 }
 ```
 
