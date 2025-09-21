@@ -30,6 +30,7 @@ class BudgetService:
                 'id': budget.id,
                 'category_id': budget.category_id,
                 'amount': budget.amount,
+                'status': budget.status,
                 'start_date': budget.start_date,
                 'end_date': budget.end_date,
                 'prediction_enabled': budget.prediction_enabled,
@@ -59,8 +60,10 @@ class BudgetService:
             raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
         budget_dict = budget_data.model_dump()
+        budget_status = self._get_budget_status(budget_data.start_date, budget_data.end_date)
         budget_dict.update({
-            'user_id': user_id
+            'user_id': user_id,
+            'status': budget_status
         })
 
         try:
@@ -175,3 +178,18 @@ class BudgetService:
                 budget_data.prediction_days_count and
                     (budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31)):
                 raise ValidationError(BudgetMessages.PREDICTION_INVALID_CUSTOM_DAYS.value)
+
+    def _get_budget_status(self, start_date: date, end_date: date) -> int:
+        """Get budget status based on current date
+        1: active
+        2: upcoming
+        3: expired
+        """
+        today = datetime.now().date()
+        if today < start_date:
+            return 2
+        elif today > end_date:
+            return 3
+        else:
+            return 1
+        

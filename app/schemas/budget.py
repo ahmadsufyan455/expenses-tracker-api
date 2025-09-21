@@ -53,6 +53,7 @@ class BudgetResponse(BudgetBase):
     id: int
     start_date: date
     end_date: date
+    status: int
     prediction_enabled: bool
     prediction_type: Optional[PredictionType] = None
     prediction_days_count: Optional[int] = None

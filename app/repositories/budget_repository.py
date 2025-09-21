@@ -135,6 +135,14 @@ class BudgetRepository(BaseRepository[Budget]):
                 query = query.order_by(Budget.created_at.desc())
             else:
                 query = query.order_by(Budget.created_at.asc())
+        elif sort_by == "status":
+            # If same status, sort by start date
+            # For active and upcoming: earliest start date first
+            # For expired: latest end date first (most recently expired first)
+            if sort_order == "desc":
+                query = query.order_by(Budget.status.desc())
+            else:
+                query = query.order_by(Budget.status.asc())
         else:
             # Default fallback to id sorting
             query = query.order_by(Budget.id)

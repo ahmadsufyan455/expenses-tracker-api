@@ -19,6 +19,7 @@ class Budget(Base):
     amount = Column(Integer)
     start_date = Column(Date, nullable=False, index=True)
     end_date = Column(Date, nullable=False, index=True)
+    status = Column(Integer, nullable=False, default=1, index=True)
 
     # Prediction fields
     prediction_enabled = Column(Boolean, default=False, nullable=False)
