@@ -22,13 +22,14 @@ A comprehensive RESTful API for personal expense tracking built with FastAPI, fe
 - **Integer-based IDs** - Simple and efficient transaction identification
 
 ### 📅 Budget Planning
-- **Monthly Budgets** - Set spending limits by category and month
+- **Flexible Date Range Budgets** - Create budgets for any custom date range (days, weeks, months, or cross-month periods)
+- **Overlap Prevention** - Smart validation prevents overlapping budgets for the same category
 - **Budget Enforcement** - Prevents expense recording without corresponding budget
 - **Budget Predictions** - Calculate daily spending allowances based on remaining budget
 - **Multiple Prediction Types** - Daily, weekdays-only, weekends-only, or custom day counts
 - **Real-time Calculations** - Dynamic budget tracking with remaining balance
 - **Financial Discipline** - Encourages proactive budget planning
-- **Unique Constraints** - One budget per category per month
+- **Raw SQL Optimization** - High-performance overlap detection using native SQL queries
 
 ### 🔧 Architecture
 - **Clean Architecture** - Separation of concerns with repositories, services, and API layers
@@ -81,9 +82,20 @@ DELETE /api/v1/transactions/{id}/delete  # Delete transaction
 ### Budgets
 ```
 GET    /api/v1/budgets/            # Get user budgets with predictions
-POST   /api/v1/budgets/            # Create new budget with prediction settings
-PUT    /api/v1/budgets/{id}        # Update budget
+POST   /api/v1/budgets/            # Create new date range budget with overlap prevention
+PUT    /api/v1/budgets/{id}        # Update budget (validates against overlaps)
 DELETE /api/v1/budgets/{id}        # Delete budget
+
+# Budget Schema (New Date Range Format)
+{
+  "category_id": 1,
+  "amount": 50000,
+  "start_date": "2025-09-27",      # Start date of budget period
+  "end_date": "2025-10-27",        # End date of budget period
+  "prediction_enabled": true,
+  "prediction_type": "daily",       # daily|weekdays|weekends|custom
+  "prediction_days_count": 15       # Required if prediction_type = "custom"
+}
 ```
 
 ### Dashboard
@@ -288,17 +300,77 @@ POST /api/v1/categories/
 }
 ```
 
-### 3. Set Monthly Budget with Prediction
+### 3. Set Date Range Budget with Prediction
 ```bash
+# Traditional monthly budget
 POST /api/v1/budgets/
 {
   "category_id": 1,
   "amount": 50000,
-  "month": "2025-01",
+  "start_date": "2025-01-01",
+  "end_date": "2025-01-31",
   "prediction_enabled": true,
   "prediction_type": "daily"
 }
+
+# Cross-month budget (e.g., 27 Sep to 27 Oct)
+POST /api/v1/budgets/
+{
+  "category_id": 2,
+  "amount": 120000,
+  "start_date": "2025-09-27",
+  "end_date": "2025-10-27",
+  "prediction_enabled": true,
+  "prediction_type": "weekdays"
+}
+
+# Short-term budget (one week)
+POST /api/v1/budgets/
+{
+  "category_id": 3,
+  "amount": 30000,
+  "start_date": "2025-10-01",
+  "end_date": "2025-10-07"
+}
 ```
+
+## 🎯 Date Range Budget Feature
+
+### Flexible Budget Periods
+Create budgets for any time period that suits your needs:
+
+- **Traditional Monthly**: `2025-01-01` to `2025-01-31`
+- **Cross-Month Periods**: `2025-09-27` to `2025-10-27` (your specific use case!)
+- **Short-Term**: `2025-10-01` to `2025-10-07` (one week)
+- **Custom Periods**: Any start and end date combination
+
+### Overlap Prevention Examples
+
+```bash
+# ✅ ALLOWED: Sequential budgets for same category
+Budget 1: Food (2025-09-01 to 2025-09-26)
+Budget 2: Food (2025-09-27 to 2025-10-27)  # Starts after Budget 1 ends
+Budget 3: Food (2025-10-28 to 2025-11-27)  # Continues after Budget 2
+
+# ❌ BLOCKED: Overlapping budgets for same category
+Budget 1: Food (2025-09-27 to 2025-10-27)
+Budget 2: Food (2025-10-15 to 2025-11-15)  # ERROR: Overlaps with Budget 1
+
+# ✅ ALLOWED: Different categories can overlap
+Food Budget:   2025-09-27 to 2025-10-27
+Travel Budget: 2025-09-27 to 2025-10-27  # Different category = OK
+```
+
+### Transaction Validation
+- Transactions are validated against the budget that covers their date
+- A transaction on `2025-10-15` will use the budget with `start_date <= 2025-10-15 <= end_date`
+- If no budget covers the transaction date, the expense will be rejected
+
+### Prediction System
+The prediction system automatically adapts to your custom date ranges:
+- Calculates remaining days based on your budget period (not calendar months)
+- Supports all prediction types (daily, weekdays, weekends, custom) within your date range
+- Works perfectly with cross-month budgets
 
 ### 4. Record Transactions
 ```bash
@@ -316,12 +388,17 @@ POST /api/v1/transactions/
 ## 🎯 Key Business Logic
 
 ### Budget Enforcement
-- **Expense transactions** require an active budget for the current month
+- **Expense transactions** require an active budget that covers the transaction date
 - **Income transactions** can be created without budgets
+- **Date Range Validation** - Transactions are validated against budget periods, not just months
+- **Overlap Prevention** - System prevents creating overlapping budgets for the same category
 - Users must plan budgets before spending (promotes financial discipline)
 
 ### Data Integrity
-- One budget per category per month (unique constraint)
+- **No overlapping budgets** per category (enforced by raw SQL validation)
+- **Flexible date ranges** - budgets can span any period (days, weeks, months, cross-month)
+- **Adjacent budgets allowed** - sequential budgets with no gaps are permitted
+- **Multi-category support** - different categories can have overlapping date ranges
 - Integer-based IDs for simplicity and efficiency
 - Cascade deletes for data consistency
 - Comprehensive validation at all levels
