@@ -2,6 +2,9 @@
     "builds": [
         {
             "src": "app/main.py",
+            "config": {
+                "pythonVersion": "3.10"
+            },
             "use": "@vercel/python"
         }
     ],
