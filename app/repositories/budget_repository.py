@@ -89,8 +89,12 @@ class BudgetRepository(BaseRepository[Budget]):
             return self.db.query(Budget).filter(Budget.id == row.id).first()
         return None
 
-    def get_budgets_with_spending_data(self, user_id: int) -> List[dict]:
-        """Get all budgets for a user with spending data for their date ranges"""
+    def count_by_user_id(self, user_id: int) -> int:
+        """Count total budgets for a user"""
+        return self.db.query(Budget).filter(Budget.user_id == user_id).count()
+
+    def get_budgets_with_spending_data(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc") -> List[dict]:
+        """Get budgets for a user with spending data for their date ranges (with pagination)"""
         query = self.db.query(
             Budget,
             func.coalesce(func.sum(Transaction.amount), 0).label('total_spent')
@@ -103,10 +107,43 @@ class BudgetRepository(BaseRepository[Budget]):
             (func.date(Transaction.created_at) <= Budget.end_date)
         ).filter(
             Budget.user_id == user_id
-        ).group_by(Budget.id).order_by(Budget.updated_at.desc())
+        ).group_by(Budget.id)
+
+        # Apply sorting
+        if sort_by == "start_date":
+            if sort_order == "desc":
+                query = query.order_by(Budget.start_date.desc())
+            else:
+                query = query.order_by(Budget.start_date.asc())
+        elif sort_by == "end_date":
+            if sort_order == "desc":
+                query = query.order_by(Budget.end_date.desc())
+            else:
+                query = query.order_by(Budget.end_date.asc())
+        elif sort_by == "amount":
+            if sort_order == "desc":
+                query = query.order_by(Budget.amount.desc())
+            else:
+                query = query.order_by(Budget.amount.asc())
+        elif sort_by == "updated_at":
+            if sort_order == "desc":
+                query = query.order_by(Budget.updated_at.desc())
+            else:
+                query = query.order_by(Budget.updated_at.asc())
+        elif sort_by == "created_at":
+            if sort_order == "desc":
+                query = query.order_by(Budget.created_at.desc())
+            else:
+                query = query.order_by(Budget.created_at.asc())
+        else:
+            # Default fallback to id sorting
+            query = query.order_by(Budget.id)
+
+        # Apply pagination
+        paginated_results = query.offset(skip).limit(limit).all()
 
         results = []
-        for budget, total_spent in query.all():
+        for budget, total_spent in paginated_results:
             results.append({
                 'budget': budget,
                 'total_spent': int(total_spent) if total_spent else 0

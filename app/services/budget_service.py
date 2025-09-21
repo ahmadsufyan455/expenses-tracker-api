@@ -15,9 +15,13 @@ class BudgetService:
     def __init__(self, db: Session):
         self.repository = BudgetRepository(db)
 
-    def get_user_budgets(self, user_id: int) -> List[dict]:
-        """Get user budgets with prediction data when enabled"""
-        budget_data = self.repository.get_budgets_with_spending_data(user_id)
+    def get_user_budgets(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc"):
+        """Get user budgets with prediction data when enabled (with pagination)"""
+        # Get total count
+        total = self.repository.count_by_user_id(user_id)
+
+        # Get paginated budget data
+        budget_data = self.repository.get_budgets_with_spending_data(user_id, skip, limit, sort_by, sort_order)
 
         result = []
         for item in budget_data:
@@ -44,7 +48,7 @@ class BudgetService:
 
             result.append(budget_dict)
 
-        return result
+        return result, total
 
     def create_budget(self, user_id: int, budget_data: BudgetCreate) -> Budget:
         # Validate prediction settings

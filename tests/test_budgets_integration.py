@@ -19,6 +19,9 @@ class TestBudgetEndpoints:
 
         assert data["message"] == BudgetMessages.RETRIEVED_SUCCESS.value
         assert data["data"] == []
+        assert data["total"] == 0
+        assert data["page"] == 1
+        assert data["per_page"] == 20
 
     def test_create_budget_success(self, client: TestClient, authenticated_user, created_category):
         """Test successful budget creation"""
@@ -139,6 +142,9 @@ class TestBudgetEndpoints:
         assert len(data["data"]) == 1
         assert data["data"][0]["id"] == created_budget["id"]
         assert data["data"][0]["amount"] == created_budget["amount"]
+        assert data["total"] == 1
+        assert data["page"] == 1
+        assert data["per_page"] == 20
 
     def test_update_budget_success(self, client: TestClient, authenticated_user, created_budget):
         """Test successful budget update"""
@@ -255,3 +261,84 @@ class TestBudgetEndpoints:
         """Test deleting budget without authentication"""
         response = client.delete(f"/api/v1/budgets/{created_budget['id']}")
         assert response.status_code == 401
+
+    def test_get_budgets_pagination(self, client: TestClient, authenticated_user, created_category):
+        """Test budget pagination with multiple budgets"""
+        # Create multiple budgets
+        budget_data_list = []
+        for i in range(5):
+            budget_data = {
+                "category_id": created_category["id"],
+                "amount": 10000 * (i + 1),
+                "start_date": f"2025-{i+1:02d}-01",
+                "end_date": f"2025-{i+1:02d}-28"
+            }
+            response = client.post(
+                "/api/v1/budgets/",
+                json=budget_data,
+                headers=authenticated_user["headers"]
+            )
+            assert response.status_code == 201
+            budget_data_list.append(response.json()["data"])
+
+        # Test first page with 3 items per page
+        response = client.get(
+            "/api/v1/budgets/?page=1&per_page=3",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["data"]) == 3
+        assert data["total"] == 5
+        assert data["page"] == 1
+        assert data["per_page"] == 3
+
+        # Test second page
+        response = client.get(
+            "/api/v1/budgets/?page=2&per_page=3",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["data"]) == 2  # Remaining 2 items
+        assert data["total"] == 5
+        assert data["page"] == 2
+        assert data["per_page"] == 3
+
+    def test_get_budgets_sorting(self, client: TestClient, authenticated_user, created_category):
+        """Test budget sorting functionality"""
+        # Create budgets with different amounts
+        budget_amounts = [50000, 30000, 40000]
+        for i, amount in enumerate(budget_amounts):
+            budget_data = {
+                "category_id": created_category["id"],
+                "amount": amount,
+                "start_date": f"2025-{i+1:02d}-01",
+                "end_date": f"2025-{i+1:02d}-28"
+            }
+            response = client.post(
+                "/api/v1/budgets/",
+                json=budget_data,
+                headers=authenticated_user["headers"]
+            )
+            assert response.status_code == 201
+
+        # Test sorting by amount desc
+        response = client.get(
+            "/api/v1/budgets/?sort_by=amount&sort_order=desc",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        amounts = [budget["amount"] for budget in data["data"]]
+        assert amounts == [50000, 40000, 30000]  # Descending order
+
+        # Test sorting by amount asc
+        response = client.get(
+            "/api/v1/budgets/?sort_by=amount&sort_order=asc",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        amounts = [budget["amount"] for budget in data["data"]]
+        assert amounts == [30000, 40000, 50000]  # Ascending order
