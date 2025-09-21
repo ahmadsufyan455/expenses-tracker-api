@@ -1,6 +1,5 @@
 from fastapi import APIRouter, status
 
-from app.api.v1 import router
 from app.core.dependencies import UserServiceDep, CurrentUserDep
 from app.core.responses import SuccessResponse
 from app.schemas.user import PasswordChange, UserResponse, UserUpdate

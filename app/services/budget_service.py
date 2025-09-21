@@ -1,6 +1,4 @@
-from typing import List
 from datetime import datetime, date, timedelta
-import calendar
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -106,7 +104,6 @@ class BudgetService:
             raise NotFoundError(BudgetMessages.NOT_FOUND.value)
 
         return self.repository.delete(budget_id)
-
 
     def _calculate_prediction(self, budget: Budget, total_spent: int) -> dict:
         """Calculate prediction data for a budget"""

@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Any
 import calendar
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, extract, case
-from datetime import datetime, date
+from datetime import date
 from app.models.transaction import Transaction, TransactionType
 from app.models.budget import Budget
 from app.models.category import Category

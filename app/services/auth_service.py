@@ -1,6 +1,5 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from app.config.settings import Settings
 from app.core.exceptions import NotFoundError, UnauthorizedError, ConflictError, ValidationError
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import LoginRequest, Token as TokenData

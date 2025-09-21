@@ -6,7 +6,6 @@ Provides different test execution options.
 
 import sys
 import subprocess
-from pathlib import Path
 
 
 def run_command(command):
