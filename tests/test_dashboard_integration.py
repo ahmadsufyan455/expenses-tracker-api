@@ -1,4 +1,5 @@
 from datetime import datetime
+import calendar
 
 
 class TestDashboardIntegration:
@@ -162,7 +163,9 @@ class TestDashboardIntegration:
             categories.append(cat_response.json()["data"])
 
         current_date = datetime.now()
-        month_str = f"{current_date.year}-{current_date.month:02d}"
+        start_date = current_date.replace(day=1).strftime("%Y-%m-%d")
+        last_day = calendar.monthrange(current_date.year, current_date.month)[1]
+        end_date = current_date.replace(day=last_day).strftime("%Y-%m-%d")
 
         # Create budgets and transactions for each category
         for i, category in enumerate(categories):
@@ -172,7 +175,8 @@ class TestDashboardIntegration:
                 json={
                     "category_id": category["id"],
                     "amount": 100000 * (i + 1),
-                    "month": month_str
+                    "start_date": start_date,
+                    "end_date": end_date
                 },
                 headers=authenticated_user["headers"]
             )

@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import calendar
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -28,7 +28,8 @@ class BudgetService:
                 'id': budget.id,
                 'category_id': budget.category_id,
                 'amount': budget.amount,
-                'month': budget.month,
+                'start_date': budget.start_date,
+                'end_date': budget.end_date,
                 'prediction_enabled': budget.prediction_enabled,
                 'prediction_type': budget.prediction_type,
                 'prediction_days_count': budget.prediction_days_count,
@@ -46,24 +47,18 @@ class BudgetService:
         return result
 
     def create_budget(self, user_id: int, budget_data: BudgetCreate) -> Budget:
-        # Parse month
-        month_date = self._parse_month(budget_data.month)
-
         # Validate prediction settings
         self._validate_prediction_settings(budget_data)
 
-        # Check if budget already exists
-        existing = self.repository.get_by_user_and_category_and_month(
-            user_id, budget_data.category_id, month_date
-        )
-        if existing:
+        # Check for overlapping budgets
+        if self.repository.check_date_range_overlap(
+            user_id, budget_data.category_id, budget_data.start_date, budget_data.end_date
+        ):
             raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
-        budget_dict = budget_data.model_dump(exclude={'month'})
-
+        budget_dict = budget_data.model_dump()
         budget_dict.update({
-            'user_id': user_id,
-            'month': month_date
+            'user_id': user_id
         })
 
         try:
@@ -83,9 +78,18 @@ class BudgetService:
         if budget_data.prediction_enabled is not None:
             self._validate_prediction_settings(budget_data)
 
+        # Check for overlapping budgets if dates are being changed
         update_data = budget_data.model_dump(exclude_unset=True)
-        if 'month' in update_data:
-            update_data['month'] = self._parse_month(update_data['month'])
+        if 'start_date' in update_data or 'end_date' in update_data:
+            # Use new dates if provided, otherwise use existing dates
+            start_date = update_data.get('start_date', budget.start_date)
+            end_date = update_data.get('end_date', budget.end_date)
+            category_id = update_data.get('category_id', budget.category_id)
+
+            if self.repository.check_date_range_overlap(
+                user_id, category_id, start_date, end_date, exclude_budget_id=budget_id
+            ):
+                raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
         try:
             return self.repository.update(budget, update_data)
@@ -99,31 +103,26 @@ class BudgetService:
 
         return self.repository.delete(budget_id)
 
-    def _parse_month(self, month: str):
-        try:
-            return datetime.strptime(month, "%Y-%m").replace(day=1).date()
-        except ValueError:
-            raise ValidationError(BudgetMessages.INVALID_MONTH_FORMAT.value)
 
     def _calculate_prediction(self, budget: Budget, total_spent: int) -> dict:
         """Calculate prediction data for a budget"""
         remaining_budget = budget.amount - total_spent
-
-        # Get days remaining in the month
         today = datetime.now().date()
-        budget_month = budget.month
 
-        # If budget is for current month, calculate days remaining
-        if (today.year == budget_month.year and today.month == budget_month.month):
-            days_in_month = calendar.monthrange(budget_month.year, budget_month.month)[1]
-            days_remaining = days_in_month - today.day + 1
+        # Calculate days remaining in budget period
+        if today < budget.start_date:
+            # Budget hasn't started yet, use full period
+            total_days = (budget.end_date - budget.start_date).days + 1
+            days_remaining = total_days
+        elif today > budget.end_date:
+            # Budget period has ended
+            days_remaining = 0
         else:
-            # For future months, use full month
-            days_in_month = calendar.monthrange(budget_month.year, budget_month.month)[1]
-            days_remaining = days_in_month
+            # Budget is active, calculate remaining days
+            days_remaining = (budget.end_date - today).days + 1
 
         # Calculate applicable days based on prediction type
-        applicable_days = self._get_applicable_days(budget, days_remaining, budget_month)
+        applicable_days = self._get_applicable_days_in_range(budget, today, budget.end_date, days_remaining)
 
         if applicable_days <= 0:
             daily_allowance = 0
@@ -137,65 +136,33 @@ class BudgetService:
             'prediction_type': budget.prediction_type
         }
 
-    def _get_applicable_days(self, budget: Budget, days_remaining: int, budget_month: date) -> int:
-        """Calculate applicable days based on prediction type"""
+    def _get_applicable_days_in_range(self, budget: Budget, start_date: date, end_date: date, total_days: int) -> int:
+        """Calculate applicable days based on prediction type within date range"""
         if budget.prediction_type == PredictionType.DAILY:
-            return days_remaining
+            return total_days
         elif budget.prediction_type == PredictionType.CUSTOM:
             # For custom, use the specified days count, but don't exceed remaining days
-            return min(budget.prediction_days_count or days_remaining, days_remaining)
+            return min(budget.prediction_days_count or total_days, total_days)
         elif budget.prediction_type == PredictionType.WEEKENDS:
-            # Count weekend days remaining in the month
-            return self._count_weekend_days_remaining(budget_month)
+            # Count weekend days in the remaining period
+            return self._count_days_by_type_in_range(start_date, end_date, [5, 6])  # Sat, Sun
         elif budget.prediction_type == PredictionType.WEEKDAYS:
-            # Count weekday days remaining in the month
-            return self._count_weekday_days_remaining(budget_month)
+            # Count weekday days in the remaining period
+            return self._count_days_by_type_in_range(start_date, end_date, [0, 1, 2, 3, 4])  # Mon-Fri
         else:
-            return days_remaining
+            return total_days
 
-    def _count_weekend_days_remaining(self, budget_month: date) -> int:
-        """Count remaining weekend days (Saturday=5, Sunday=6) in the budget month"""
-        today = datetime.now().date()
-        if today.year != budget_month.year or today.month != budget_month.month:
-            # For future months, count all weekends
-            days_in_month = calendar.monthrange(budget_month.year, budget_month.month)[1]
-            weekend_count = 0
-            for day in range(1, days_in_month + 1):
-                weekday = date(budget_month.year, budget_month.month, day).weekday()
-                if weekday in [5, 6]:  # Saturday=5, Sunday=6
-                    weekend_count += 1
-            return weekend_count
-        else:
-            # For current month, count remaining weekends
-            days_in_month = calendar.monthrange(budget_month.year, budget_month.month)[1]
-            weekend_count = 0
-            for day in range(today.day, days_in_month + 1):
-                weekday = date(budget_month.year, budget_month.month, day).weekday()
-                if weekday in [5, 6]:  # Saturday=5, Sunday=6
-                    weekend_count += 1
-            return weekend_count
+    def _count_days_by_type_in_range(self, start_date: date, end_date: date, target_weekdays: list) -> int:
+        """Count specific weekday types in a date range"""
+        count = 0
+        current_date = start_date
 
-    def _count_weekday_days_remaining(self, budget_month: date) -> int:
-        """Count remaining weekday days (Monday=0 to Friday=4) in the budget month"""
-        today = datetime.now().date()
-        if today.year != budget_month.year or today.month != budget_month.month:
-            # For future months, count all weekdays
-            days_in_month = calendar.monthrange(budget_month.year, budget_month.month)[1]
-            weekday_count = 0
-            for day in range(1, days_in_month + 1):
-                weekday = date(budget_month.year, budget_month.month, day).weekday()
-                if weekday in [0, 1, 2, 3, 4]:  # Monday=0 to Friday=4
-                    weekday_count += 1
-            return weekday_count
-        else:
-            # For current month, count remaining weekdays
-            days_in_month = calendar.monthrange(budget_month.year, budget_month.month)[1]
-            weekday_count = 0
-            for day in range(today.day, days_in_month + 1):
-                weekday = date(budget_month.year, budget_month.month, day).weekday()
-                if weekday in [0, 1, 2, 3, 4]:  # Monday=0 to Friday=4
-                    weekday_count += 1
-            return weekday_count
+        while current_date <= end_date:
+            if current_date.weekday() in target_weekdays:
+                count += 1
+            current_date += timedelta(days=1)
+
+        return count
 
     def _validate_prediction_settings(self, budget_data):
         """Validate prediction configuration"""

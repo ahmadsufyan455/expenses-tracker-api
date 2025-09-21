@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -35,11 +35,11 @@ class TransactionService:
             raise NotFoundError(CategoryMessages.NOT_FOUND.value)
         # Enforce strict validation for EXPENSE transactions
         if transaction_data.type == TransactionType.EXPENSE:
-            month_date = self._month_start_now()
-            budget = self._require_budget(user_id, transaction_data.category_id, month_date)
+            transaction_date = datetime.now().date()
+            budget = self._require_budget_for_date(user_id, transaction_data.category_id, transaction_date)
 
             # Check remaining budget and prevent overspending
-            self._validate_budget_limit(budget, user_id, transaction_data.category_id, month_date, transaction_data.amount)
+            self._validate_budget_limit(budget, user_id, transaction_data.category_id, transaction_data.amount)
 
         transaction_dict = transaction_data.model_dump()
         transaction_dict.update({
@@ -62,17 +62,16 @@ class TransactionService:
         effective_category_id = update_data.get('category_id', transaction.category_id)
         effective_amount = update_data.get('amount', transaction.amount)
 
-        month_date = self._month_start_now()
-
         # Validate budget limits for expense transactions
         effective_is_expense = effective_type == TransactionType.EXPENSE
 
         if effective_is_expense:
             # For expense transactions, validate that the new amount doesn't exceed budget
-            budget = self._require_budget(user_id, effective_category_id, month_date)
+            transaction_date = datetime.now().date()
+            budget = self._require_budget_for_date(user_id, effective_category_id, transaction_date)
 
             # Calculate what the total spent would be after this update
-            current_spent = self._get_current_month_spending(user_id, effective_category_id, month_date, exclude_transaction_id=transaction_id)
+            current_spent = self._get_budget_period_spending(budget, user_id, effective_category_id, exclude_transaction_id=transaction_id)
             new_total_spent = current_spent + effective_amount
 
             if new_total_spent > budget.amount:
@@ -90,32 +89,29 @@ class TransactionService:
 
         return self.repository.delete(transaction_id)
 
-    @staticmethod
-    def _month_start_now():
-        return datetime.now().replace(day=1).date()
-
-    def _require_budget(self, user_id: int, category_id: int, month_date):
-        budget = self.budget_repository.get_by_user_and_category_and_month(user_id, category_id, month_date)
+    def _require_budget_for_date(self, user_id: int, category_id: int, transaction_date: date):
+        """Find budget that covers the transaction date"""
+        budget = self.budget_repository.get_budget_for_transaction_date(user_id, category_id, transaction_date)
         if not budget:
             raise ValidationError(TransactionMessages.INVALID_BUDGET_NOT_FOUND.value)
         return budget
 
-    def _validate_budget_limit(self, budget, user_id: int, category_id: int, month_date, amount: int):
+    def _validate_budget_limit(self, budget, user_id: int, category_id: int, amount: int):
         """Validate that adding this expense amount won't exceed the budget limit"""
-        current_spent = self._get_current_month_spending(user_id, category_id, month_date)
+        current_spent = self._get_budget_period_spending(budget, user_id, category_id)
         new_total_spent = current_spent + amount
 
         if new_total_spent > budget.amount:
             raise ValidationError(TransactionMessages.EXCEEDED_LIMIT.value)
 
-    def _get_current_month_spending(self, user_id: int, category_id: int, month_date, exclude_transaction_id=None):
-        """Calculate total spending for a category in a specific month"""
+    def _get_budget_period_spending(self, budget, user_id: int, category_id: int, exclude_transaction_id=None):
+        """Calculate total spending for a category within the budget period"""
         query = self.repository.db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
             Transaction.user_id == user_id,
             Transaction.category_id == category_id,
             Transaction.type == TransactionType.EXPENSE,
-            func.extract('year', Transaction.created_at) == month_date.year,
-            func.extract('month', Transaction.created_at) == month_date.month
+            func.date(Transaction.created_at) >= budget.start_date,
+            func.date(Transaction.created_at) <= budget.end_date
         )
 
         # Exclude specific transaction if updating

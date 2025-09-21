@@ -259,7 +259,11 @@ class TestCategoryEndpoints:
     def test_multiple_categories_usage_count_isolation(self, client: TestClient, authenticated_user, sample_category_data, sample_budget_data):
         """Test that usage counts are properly isolated between categories"""
         from datetime import datetime
-        current_month = datetime.now().strftime("%Y-%m")
+        import calendar
+        current_date = datetime.now()
+        start_date = current_date.replace(day=1).strftime("%Y-%m-%d")
+        last_day = calendar.monthrange(current_date.year, current_date.month)[1]
+        end_date = current_date.replace(day=last_day).strftime("%Y-%m-%d")
 
         # Create first category
         category_data_1 = {"name": "Food"}
@@ -285,7 +289,8 @@ class TestCategoryEndpoints:
         budget_data_1 = {
             "category_id": category_1["id"],
             "amount": 50000,
-            "month": current_month
+            "start_date": start_date,
+            "end_date": end_date
         }
         response = client.post(
             "/api/v1/budgets/",
@@ -297,7 +302,8 @@ class TestCategoryEndpoints:
         budget_data_2 = {
             "category_id": category_2["id"],
             "amount": 30000,
-            "month": current_month
+            "start_date": start_date,
+            "end_date": end_date
         }
         response = client.post(
             "/api/v1/budgets/",

@@ -7,7 +7,7 @@ class TransactionMessages(Enum):
     DELETED_SUCCESS = "Transaction deleted successfully"
     RETRIEVED_SUCCESS = "Transactions retrieved successfully"
     NOT_FOUND = "Transaction not found"
-    INVALID_BUDGET_NOT_FOUND = "You must create a budget for this category in the current month before creating an expense transaction"
+    INVALID_BUDGET_NOT_FOUND = "You must create a budget for this category in the current date period before creating an expense transaction"
     EXCEEDED_LIMIT = "This transaction exceeds your remaining budget for this category this month. Please adjust your budget or reduce the amount."
 
 
@@ -18,7 +18,7 @@ class BudgetMessages(Enum):
     RETRIEVED_SUCCESS = "Budgets fetched successfully"
     NOT_FOUND = "Budget not found"
     ALREADY_EXISTS = "Budget already exists for this category and month"
-    REQUIRED_FOR_EXPENSE = "You must create a budget for this category in the current month before creating an expense transaction"
+    REQUIRED_FOR_EXPENSE = "You must create a budget for this category in the current date period before creating an expense transaction"
     EXCEEDED_LIMIT = "This transaction exceeds your remaining budget for this category this month. Please adjust your budget or reduce the amount."
     INVALID_MONTH_FORMAT = "Invalid month format. Use YYYY-MM format (e.g., '2025-09')"
     PREDICTION_INVALID_CUSTOM_DAYS = "Custom prediction days count must be between 1 and 31"

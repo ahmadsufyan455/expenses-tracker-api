@@ -17,7 +17,8 @@ class Budget(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     amount = Column(Integer)
-    month = Column(Date, nullable=False, index=True)
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=False, index=True)
 
     # Prediction fields
     prediction_enabled = Column(Boolean, default=False, nullable=False)
@@ -28,5 +29,5 @@ class Budget(Base):
     user = relationship("User", back_populates="budgets")
     category = relationship("Category", back_populates="budgets")
 
-    __table_args__ = (UniqueConstraint("user_id", "category_id", "month", name="uq_user_category_month"),
-                      Index('idx_budget_user_category', 'user_id', 'category_id'),)
+    __table_args__ = (Index('idx_budget_user_category', 'user_id', 'category_id'),
+                      Index('idx_budget_date_range', 'user_id', 'category_id', 'start_date', 'end_date'),)

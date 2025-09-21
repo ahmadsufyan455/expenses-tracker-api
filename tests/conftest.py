@@ -71,11 +71,18 @@ def sample_category_data():
 def sample_budget_data():
     """Sample budget data for testing"""
     from datetime import datetime
-    current_month = datetime.now().strftime("%Y-%m")
+    current_date = datetime.now()
+    start_date = current_date.replace(day=1).strftime("%Y-%m-%d")
+    # Calculate last day of current month
+    import calendar
+    last_day = calendar.monthrange(current_date.year, current_date.month)[1]
+    end_date = current_date.replace(day=last_day).strftime("%Y-%m-%d")
+
     return {
         "category_id": 1,
         "amount": 50000,  # $500.00 in cents
-        "month": current_month
+        "start_date": start_date,
+        "end_date": end_date
     }
 
 

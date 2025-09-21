@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Any
+import calendar
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, extract, case
 from datetime import datetime, date
@@ -36,7 +37,9 @@ class DashboardRepository:
         }
 
     def get_budgets_with_spending(self, user_id: int, year: int, month: int, limit: int = 3) -> List[Dict[str, Any]]:
-        month_date = date(year, month, 1)
+        month_start = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        month_end = date(year, month, last_day)
 
         budgets = self.db.query(
             Budget,
@@ -63,7 +66,9 @@ class DashboardRepository:
         ).filter(
             and_(
                 Budget.user_id == user_id,
-                Budget.month == month_date
+                # Budget period overlaps with the requested month
+                Budget.start_date <= month_end,
+                Budget.end_date >= month_start
             )
         ).group_by(Budget.id, Category.name).order_by(func.coalesce(func.max(Transaction.created_at), '1900-01-01').desc()).limit(limit).all()
 

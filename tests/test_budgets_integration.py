@@ -25,7 +25,8 @@ class TestBudgetEndpoints:
         budget_data = {
             "category_id": created_category["id"],
             "amount": 50000,  # $500.00 in cents
-            "month": "2024-01"
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31"
         }
 
         response = client.post(
@@ -42,16 +43,16 @@ class TestBudgetEndpoints:
         assert budget_response["category_id"] == budget_data["category_id"]
         assert budget_response["amount"] == budget_data["amount"]
         assert "id" in budget_response
-        assert "month" in budget_response
+        assert "start_date" in budget_response
+        assert "end_date" in budget_response
 
     def test_create_budget_duplicate(self, client: TestClient, authenticated_user, created_budget):
-        """Test creating duplicate budget for same category and month"""
-        from datetime import datetime
-        current_month = datetime.now().strftime("%Y-%m")
+        """Test creating duplicate budget for same category and date range"""
         duplicate_data = {
             "category_id": created_budget["category_id"],
             "amount": 30000,
-            "month": current_month  # Same month as created_budget
+            "start_date": created_budget["start_date"],  # Same date range as created_budget
+            "end_date": created_budget["end_date"]
         }
 
         response = client.post(
@@ -69,7 +70,8 @@ class TestBudgetEndpoints:
         budget_data = {
             "category_id": 999,  # Non-existent category
             "amount": 50000,
-            "month": "2024-01"
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31"
         }
 
         response = client.post(
@@ -81,12 +83,13 @@ class TestBudgetEndpoints:
         # Note: Invalid category might be accepted in current implementation
         assert response.status_code in [201, 400, 409]  # Accept various behaviors
 
-    def test_create_budget_invalid_month_format(self, client: TestClient, authenticated_user, created_category):
-        """Test creating budget with invalid month format"""
+    def test_create_budget_invalid_date_range(self, client: TestClient, authenticated_user, created_category):
+        """Test creating budget with invalid date range"""
         budget_data = {
             "category_id": created_category["id"],
             "amount": 50000,
-            "month": "2024-13"  # Invalid month
+            "start_date": "2024-01-15",
+            "end_date": "2024-01-10"  # End date before start date
         }
 
         response = client.post(
@@ -95,9 +98,7 @@ class TestBudgetEndpoints:
             headers=authenticated_user["headers"]
         )
 
-        assert response.status_code == 400
-        data = response.json()
-        assert data["message"] == BudgetMessages.INVALID_MONTH_FORMAT.value
+        assert response.status_code == 422  # Validation error
 
     def test_create_budget_unauthorized(self, client: TestClient, sample_budget_data):
         """Test creating budget without authentication"""
@@ -112,7 +113,8 @@ class TestBudgetEndpoints:
         budget_data = {
             "category_id": created_category["id"],
             "amount": -1000,  # Negative amount
-            "month": "2024-01"
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31"
         }
 
         response = client.post(
@@ -186,10 +188,11 @@ class TestBudgetEndpoints:
         )
         assert response.status_code == 401
 
-    def test_update_budget_change_month(self, client: TestClient, authenticated_user, created_budget, created_category):
-        """Test updating budget with different month"""
+    def test_update_budget_change_dates(self, client: TestClient, authenticated_user, created_budget, created_category):
+        """Test updating budget with different date range"""
         update_data = {
-            "month": "2024-02",
+            "start_date": "2024-02-01",
+            "end_date": "2024-02-29",
             "amount": 40000
         }
 
@@ -204,10 +207,11 @@ class TestBudgetEndpoints:
         budget_data = data["data"]
         assert budget_data["amount"] == update_data["amount"]
 
-    def test_update_budget_invalid_month(self, client: TestClient, authenticated_user, created_budget):
-        """Test updating budget with invalid month format"""
+    def test_update_budget_invalid_dates(self, client: TestClient, authenticated_user, created_budget):
+        """Test updating budget with invalid date range"""
         update_data = {
-            "month": "invalid-month"
+            "start_date": "2024-02-15",
+            "end_date": "2024-02-10"  # End before start
         }
 
         response = client.put(

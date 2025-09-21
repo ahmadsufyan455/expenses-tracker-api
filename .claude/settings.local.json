@@ -7,7 +7,8 @@
       "Bash(unalias:*)",
       "Bash(pytest:*)",
       "Bash(python3:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
