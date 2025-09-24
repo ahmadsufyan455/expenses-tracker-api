@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum, Date
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -22,6 +22,7 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     amount = Column(Integer)
+    date = Column(Date, nullable=False, index=True)
     type = Column(SQLEnum(TransactionType), nullable=False, index=True)
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False)
     description = Column(String, nullable=True)

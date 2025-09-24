@@ -7,7 +7,7 @@ class TransactionRepository(BaseRepository[Transaction]):
     def __init__(self, db: Session):
         super().__init__(db, Transaction)
 
-    def get_transaction_with_category(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc"):
+    def get_transaction_with_category(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "date", sort_order: str = "desc"):
         query = self.db.query(Transaction)\
             .options(joinedload(Transaction.category))\
             .filter(Transaction.user_id == user_id)
@@ -18,6 +18,11 @@ class TransactionRepository(BaseRepository[Transaction]):
                 query = query.order_by(Transaction.created_at.desc())
             else:
                 query = query.order_by(Transaction.created_at.asc())
+        elif sort_by == "date":
+            if sort_order == "desc":
+                query = query.order_by(Transaction.date.desc())
+            else:
+                query = query.order_by(Transaction.date.asc())
         else:
             # Default fallback to id sorting
             query = query.order_by(Transaction.id)
