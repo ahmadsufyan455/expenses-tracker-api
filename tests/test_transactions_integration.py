@@ -27,7 +27,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 100000,  # $1000.00 in cents
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "bank_transfer",
             "description": "Salary payment"
@@ -51,7 +51,7 @@ class TestTransactionEndpoints:
         assert transaction_response["type"] == transaction_data["type"]
         assert transaction_response["payment_method"] == transaction_data["payment_method"]
         assert transaction_response["description"] == transaction_data["description"]
-        assert transaction_response["date"] == transaction_data["date"]
+        assert transaction_response["transaction_date"] == transaction_data["transaction_date"]
         assert "id" in transaction_response
 
     def test_create_expense_transaction_success(self, client: TestClient, authenticated_user, created_budget):
@@ -59,7 +59,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 2500,  # $25.00 in cents
             "category_id": created_budget["category_id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "Lunch"
@@ -78,14 +78,14 @@ class TestTransactionEndpoints:
         transaction_response = data["data"]
         assert transaction_response["amount"] == transaction_data["amount"]
         assert transaction_response["type"] == "expense"
-        assert transaction_response["date"] == transaction_data["date"]
+        assert transaction_response["transaction_date"] == transaction_data["transaction_date"]
 
     def test_create_expense_transaction_no_budget(self, client: TestClient, authenticated_user, created_category):
         """Test expense transaction creation without budget (should fail)"""
         transaction_data = {
             "amount": 2500,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "Lunch"
@@ -106,7 +106,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 60000,  # $600.00 (more than $500 budget)
             "category_id": created_budget["category_id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "Expensive item"
@@ -135,7 +135,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 2500,
             "category_id": 999,  # Non-existent category
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash",
             "description": "Test"
@@ -156,7 +156,7 @@ class TestTransactionEndpoints:
         invalid_data = {
             "amount": -1000,  # Negative amount
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash"
         }
@@ -175,7 +175,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 5000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash",
             "description": "Test transaction"
@@ -210,7 +210,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 5000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash",
             "description": "Initial description"
@@ -266,7 +266,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 5000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash"
         }
@@ -292,7 +292,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 10000,  # $100
             "category_id": created_budget["category_id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "Initial expense"
@@ -330,7 +330,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 5000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash"
         }
@@ -376,7 +376,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 5000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "cash"
         }

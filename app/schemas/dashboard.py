@@ -22,7 +22,7 @@ class RecentTransaction(BaseModel):
     amount: int
     type: str
     category: str
-    date: date
+    transaction_date: date
 
 
 class TopExpense(BaseModel):

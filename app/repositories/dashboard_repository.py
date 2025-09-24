@@ -17,8 +17,8 @@ class DashboardRepository:
             and_(
                 Transaction.user_id == user_id,
                 Transaction.type == TransactionType.INCOME,
-                extract('year', Transaction.date) == year,
-                extract('month', Transaction.date) == month
+                extract('year', Transaction.transaction_date) == year,
+                extract('month', Transaction.transaction_date) == month
             )
         ).scalar() or 0
 
@@ -26,8 +26,8 @@ class DashboardRepository:
             and_(
                 Transaction.user_id == user_id,
                 Transaction.type == TransactionType.EXPENSE,
-                extract('year', Transaction.date) == year,
-                extract('month', Transaction.date) == month
+                extract('year', Transaction.transaction_date) == year,
+                extract('month', Transaction.transaction_date) == month
             )
         ).scalar() or 0
 
@@ -60,8 +60,8 @@ class DashboardRepository:
                 Transaction.category_id == Budget.category_id,
                 Transaction.user_id == user_id,
                 Transaction.type == TransactionType.EXPENSE,
-                extract('year', Transaction.date) == year,
-                extract('month', Transaction.date) == month
+                extract('year', Transaction.transaction_date) == year,
+                extract('month', Transaction.transaction_date) == month
             )
         ).filter(
             and_(
@@ -70,7 +70,7 @@ class DashboardRepository:
                 Budget.start_date <= month_end,
                 Budget.end_date >= month_start
             )
-        ).group_by(Budget.id, Category.name).order_by(func.coalesce(func.max(Transaction.date), '1900-01-01').desc()).limit(limit).all()
+        ).group_by(Budget.id, Category.name).order_by(func.coalesce(func.max(Transaction.transaction_date), '1900-01-01').desc()).limit(limit).all()
 
         result = []
         for budget, category_name, spent in budgets:
@@ -97,13 +97,13 @@ class DashboardRepository:
         if year is not None and month is not None:
             query = query.filter(
                 and_(
-                    extract('year', Transaction.date) == year,
-                    extract('month', Transaction.date) == month
+                    extract('year', Transaction.transaction_date) == year,
+                    extract('month', Transaction.transaction_date) == month
                 )
             )
 
         transactions = query.order_by(
-            Transaction.date.desc()
+            Transaction.transaction_date.desc()
         ).limit(limit).all()
 
         result = []
@@ -113,7 +113,7 @@ class DashboardRepository:
                 "amount": transaction.amount,
                 "type": transaction.type.value,
                 "category": category_name,
-                "date": transaction.date
+                "transaction_date": transaction.transaction_date
             })
 
         return result
@@ -128,8 +128,8 @@ class DashboardRepository:
             and_(
                 Transaction.user_id == user_id,
                 Transaction.type == TransactionType.EXPENSE,
-                extract('year', Transaction.date) == year,
-                extract('month', Transaction.date) == month
+                extract('year', Transaction.transaction_date) == year,
+                extract('month', Transaction.transaction_date) == month
             )
         ).group_by(
             Category.name

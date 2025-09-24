@@ -35,7 +35,7 @@ class TransactionService:
             raise NotFoundError(CategoryMessages.NOT_FOUND.value)
         # Enforce strict validation for EXPENSE transactions
         if transaction_data.type == TransactionType.EXPENSE:
-            transaction_date = transaction_data.date
+            transaction_date = transaction_data.transaction_date
             budget = self._require_budget_for_date(user_id, transaction_data.category_id, transaction_date)
 
             # Check remaining budget and prevent overspending
@@ -67,7 +67,7 @@ class TransactionService:
 
         if effective_is_expense:
             # For expense transactions, validate that the new amount doesn't exceed budget
-            transaction_date = update_data.get('date', transaction.date)
+            transaction_date = update_data.get('transaction_date', transaction.transaction_date)
             budget = self._require_budget_for_date(user_id, effective_category_id, transaction_date)
 
             # Calculate what the total spent would be after this update
@@ -110,8 +110,8 @@ class TransactionService:
             Transaction.user_id == user_id,
             Transaction.category_id == category_id,
             Transaction.type == TransactionType.EXPENSE,
-            Transaction.date >= budget.start_date,
-            Transaction.date <= budget.end_date
+            Transaction.transaction_date >= budget.start_date,
+            Transaction.transaction_date <= budget.end_date
         )
 
         # Exclude specific transaction if updating

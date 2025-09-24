@@ -7,7 +7,7 @@ from .category import CategoryResponse
 
 class TransactionBase(BaseModel):
     amount: int
-    date: date
+    transaction_date: date
     type: TransactionType
     payment_method: PaymentMethod
     description: Optional[str] = None
@@ -20,7 +20,7 @@ class TransactionCreate(TransactionBase):
 
 class TransactionUpdate(BaseModel):
     amount: Optional[int] = None
-    date: Optional[date] = None
+    transaction_date: Optional[date] = None
     category_id: Optional[int] = None
     type: Optional[TransactionType] = None
     payment_method: Optional[PaymentMethod] = None

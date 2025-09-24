@@ -103,8 +103,8 @@ class BudgetRepository(BaseRepository[Budget]):
             (Budget.user_id == Transaction.user_id) &
             (Budget.category_id == Transaction.category_id) &
             (Transaction.type == TransactionType.EXPENSE) &
-            (Transaction.date >= Budget.start_date) &
-            (Transaction.date <= Budget.end_date)
+            (Transaction.transaction_date >= Budget.start_date) &
+            (Transaction.transaction_date <= Budget.end_date)
         ).filter(
             Budget.user_id == user_id
         ).group_by(Budget.id)

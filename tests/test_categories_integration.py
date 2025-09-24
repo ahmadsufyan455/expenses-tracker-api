@@ -211,7 +211,7 @@ class TestCategoryEndpoints:
         transaction_data_1 = {
             "amount": 2500,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "First transaction"
@@ -236,7 +236,7 @@ class TestCategoryEndpoints:
         transaction_data_2 = {
             "amount": 3000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "credit_card",
             "description": "Second transaction"
@@ -334,7 +334,7 @@ class TestCategoryEndpoints:
             transaction_data = {
                 "amount": 1000,
                 "category_id": category_1["id"],
-                "date": "2025-09-24",
+                "transaction_date": "2025-09-24",
                 "type": "expense",
                 "payment_method": "cash",
                 "description": f"Food transaction {i+1}"
@@ -350,7 +350,7 @@ class TestCategoryEndpoints:
         transaction_data = {
             "amount": 2000,
             "category_id": category_2["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "credit_card",
             "description": "Transport transaction"
@@ -382,7 +382,7 @@ class TestCategoryEndpoints:
         expense_transaction = {
             "amount": 2500,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "Expense transaction"
@@ -398,7 +398,7 @@ class TestCategoryEndpoints:
         income_transaction = {
             "amount": 5000,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "income",
             "payment_method": "bank_transfer",
             "description": "Income transaction"
@@ -425,7 +425,7 @@ class TestCategoryEndpoints:
         transaction_data = {
             "amount": 2500,
             "category_id": created_category["id"],
-            "date": "2025-09-24",
+            "transaction_date": "2025-09-24",
             "type": "expense",
             "payment_method": "cash",
             "description": "Test transaction"

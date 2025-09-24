@@ -12,7 +12,7 @@ class TestDashboardIntegration:
             json={
                 "category_id": created_budget["category_id"],
                 "amount": 500000,
-                "date": "2025-09-24",
+                "transaction_date": "2025-09-24",
                 "type": "income",
                 "payment_method": "bank_transfer",
                 "description": "Salary"
@@ -27,7 +27,7 @@ class TestDashboardIntegration:
             json={
                 "category_id": created_budget["category_id"],
                 "amount": 25000,
-                "date": "2025-09-24",
+                "transaction_date": "2025-09-24",
                 "type": "expense",
                 "payment_method": "cash",
                 "description": "Groceries"
@@ -189,7 +189,7 @@ class TestDashboardIntegration:
                 json={
                     "category_id": category["id"],
                     "amount": 50000 * (i + 1),
-                    "date": "2025-09-24",
+                    "transaction_date": "2025-09-24",
                     "type": "expense",
                     "payment_method": "cash"
                 },

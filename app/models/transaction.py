@@ -22,7 +22,7 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     amount = Column(Integer)
-    date = Column(Date, nullable=False, index=True)
+    transaction_date = Column(Date, nullable=False, index=True)
     type = Column(SQLEnum(TransactionType), nullable=False, index=True)
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False)
     description = Column(String, nullable=True)
