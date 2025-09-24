@@ -30,7 +30,7 @@ class BudgetService:
                 'id': budget.id,
                 'category_id': budget.category_id,
                 'amount': budget.amount,
-                'status': budget.status,
+                'status': self._get_budget_status(budget.start_date, budget.end_date),
                 'start_date': budget.start_date,
                 'end_date': budget.end_date,
                 'prediction_enabled': budget.prediction_enabled,
