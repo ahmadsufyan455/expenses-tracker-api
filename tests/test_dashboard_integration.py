@@ -12,7 +12,7 @@ class TestDashboardIntegration:
             json={
                 "category_id": created_budget["category_id"],
                 "amount": 500000,
-                "transaction_date": "2025-09-24",
+                "transaction_date": "2025-10-15",
                 "type": "income",
                 "payment_method": "bank_transfer",
                 "description": "Salary"
@@ -27,7 +27,7 @@ class TestDashboardIntegration:
             json={
                 "category_id": created_budget["category_id"],
                 "amount": 25000,
-                "transaction_date": "2025-09-24",
+                "transaction_date": "2025-10-15",
                 "type": "expense",
                 "payment_method": "cash",
                 "description": "Groceries"
@@ -59,6 +59,7 @@ class TestDashboardIntegration:
         summary = dashboard_data["summary"]
         assert summary["total_income"] == 500000
         assert summary["total_expenses"] == 25000
+        assert summary["total_expenses_today"] >= 0
         assert summary["net_balance"] == 475000
         assert summary["savings_rate"] == 95.0
 
@@ -95,6 +96,7 @@ class TestDashboardIntegration:
         assert data["data"]["period"] == "2024-01"
         assert data["data"]["summary"]["total_income"] == 0
         assert data["data"]["summary"]["total_expenses"] == 0
+        assert data["data"]["summary"]["total_expenses_today"] == 0
 
     def test_get_dashboard_with_custom_limits(self, client, authenticated_user):
         response = client.get(
@@ -146,6 +148,7 @@ class TestDashboardIntegration:
         dashboard_data = data["data"]
         assert dashboard_data["summary"]["total_income"] == 0
         assert dashboard_data["summary"]["total_expenses"] == 0
+        assert dashboard_data["summary"]["total_expenses_today"] == 0
         assert dashboard_data["summary"]["net_balance"] == 0
         assert dashboard_data["summary"]["savings_rate"] == 0.0
         assert len(dashboard_data["budgets"]) == 0
@@ -184,12 +187,13 @@ class TestDashboardIntegration:
             )
 
             # Create expense
+            transaction_date = datetime.now().strftime("%Y-%m-%d")
             client.post(
                 "/api/v1/transactions/",
                 json={
                     "category_id": category["id"],
                     "amount": 50000 * (i + 1),
-                    "transaction_date": "2025-09-24",
+                    "transaction_date": transaction_date,
                     "type": "expense",
                     "payment_method": "cash"
                 },

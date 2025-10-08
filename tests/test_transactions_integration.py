@@ -59,7 +59,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 2500,  # $25.00 in cents
             "category_id": created_budget["category_id"],
-            "transaction_date": "2025-09-24",
+            "transaction_date": "2025-10-15",
             "type": "expense",
             "payment_method": "cash",
             "description": "Lunch"
@@ -106,7 +106,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 60000,  # $600.00 (more than $500 budget)
             "category_id": created_budget["category_id"],
-            "transaction_date": "2025-09-24",
+            "transaction_date": "2025-10-15",
             "type": "expense",
             "payment_method": "cash",
             "description": "Expensive item"
@@ -292,7 +292,7 @@ class TestTransactionEndpoints:
         transaction_data = {
             "amount": 10000,  # $100
             "category_id": created_budget["category_id"],
-            "transaction_date": "2025-09-24",
+            "transaction_date": "2025-10-15",
             "type": "expense",
             "payment_method": "cash",
             "description": "Initial expense"
