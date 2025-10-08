@@ -6,6 +6,7 @@ from datetime import date
 class DashboardSummary(BaseModel):
     total_income: int
     total_expenses: int
+    total_expenses_today: int
     net_balance: int
     savings_rate: float
 

@@ -31,9 +31,20 @@ class DashboardRepository:
             )
         ).scalar() or 0
 
+        expense_sum_today = self.db.query(func.sum(Transaction.amount)).filter(
+            and_(
+                Transaction.user_id == user_id,
+                Transaction.type == TransactionType.EXPENSE,
+                extract('year', Transaction.transaction_date) == year,
+                extract('month', Transaction.transaction_date) == month,
+                extract('day', Transaction.transaction_date) == date.today().day
+            ),
+        ).scalar() or 0
+
         return {
             "total_income": income_sum,
-            "total_expenses": expense_sum
+            "total_expenses": expense_sum,
+            "total_expenses_today": expense_sum_today
         }
 
     def get_budgets_with_spending(self, user_id: int, year: int, month: int, limit: int = 3) -> List[Dict[str, Any]]:

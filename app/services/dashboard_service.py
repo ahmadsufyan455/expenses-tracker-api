@@ -42,6 +42,7 @@ class DashboardService:
         summary = DashboardSummary(
             total_income=summary_data["total_income"],
             total_expenses=summary_data["total_expenses"],
+            total_expenses_today=summary_data["total_expenses_today"],
             net_balance=net_balance,
             savings_rate=savings_rate
         )
