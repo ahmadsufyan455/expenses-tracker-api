@@ -13,13 +13,13 @@ class BudgetService:
     def __init__(self, db: Session):
         self.repository = BudgetRepository(db)
 
-    def get_user_budgets(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc"):
-        """Get user budgets with prediction data when enabled (with pagination)"""
+    def get_user_budgets(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc", status: int = None):
+        """Get user budgets with prediction data when enabled (with pagination and optional status filter)"""
         # Get total count
-        total = self.repository.count_by_user_id(user_id)
+        total = self.repository.count_by_user_id(user_id, status)
 
         # Get paginated budget data
-        budget_data = self.repository.get_budgets_with_spending_data(user_id, skip, limit, sort_by, sort_order)
+        budget_data = self.repository.get_budgets_with_spending_data(user_id, skip, limit, sort_by, sort_order, status)
 
         result = []
         for item in budget_data:

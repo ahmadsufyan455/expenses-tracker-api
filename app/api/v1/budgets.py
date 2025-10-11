@@ -15,7 +15,8 @@ async def get_budgets(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: asc or desc")
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: asc or desc"),
+    status: int = Query(None, ge=1, le=3, description="Filter by status: 1=active, 2=upcoming, 3=expired")
 ) -> PaginatedResponse:
     skip = (page - 1) * per_page
 
@@ -24,7 +25,8 @@ async def get_budgets(
         skip,
         per_page,
         sort_by,
-        sort_order
+        sort_order,
+        status
     )
     budget_responses = [BudgetResponse.model_validate(budget_data) for budget_data in budgets_data]
     return PaginatedResponse(
