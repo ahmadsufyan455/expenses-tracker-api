@@ -1,6 +1,6 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func, text, case
 from datetime import date
 
 from app.models.budget import Budget
@@ -168,10 +168,16 @@ class BudgetRepository(BaseRepository[Budget]):
             # If same status, sort by start date
             # For active and upcoming: earliest start date first
             # For expired: latest end date first (most recently expired first)
+            today = date.today()
+            status_case = case(
+                (Budget.start_date > today, 2),
+                (Budget.end_date < today, 3),
+                else_=1
+            )
             if sort_order == "desc":
-                query = query.order_by(Budget.status.desc())
+                query = query.order_by(status_case.desc(), Budget.start_date.desc)
             else:
-                query = query.order_by(Budget.status.asc())
+                query = query.order_by(status_case.asc(), Budget.start_date.asc())
         else:
             # Default fallback to id sorting
             query = query.order_by(Budget.id)
