@@ -1,12 +1,18 @@
 import pytest
+import warnings
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.config.database import get_db
 from app.models.base import Base
+import sqlite3
+from datetime import date, datetime
+
+# Suppress SQLite date adapter deprecation warnings in Python 3.13+
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="sqlalchemy.engine.default")
 
 # Test database URL (SQLite in-memory database)
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -16,6 +22,18 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
+
+# Register custom date adapters for SQLite to avoid Python 3.12+ deprecation warnings
+@event.listens_for(engine, "connect")
+def setup_sqlite_date_adapters(dbapi_connection, connection_record):
+    """Configure SQLite connection to handle dates properly in Python 3.13+"""
+
+    # Register adapters if they haven't been registered yet
+    if not hasattr(sqlite3, '_adapters_registered'):
+        # Convert Python date to ISO format string for SQLite
+        sqlite3.register_adapter(date, lambda val: val.isoformat())
+        sqlite3.register_adapter(datetime, lambda val: val.isoformat())
+        sqlite3._adapters_registered = True
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
