@@ -13,7 +13,15 @@ class BudgetService:
     def __init__(self, db: Session):
         self.repository = BudgetRepository(db)
 
-    def get_user_budgets(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc", status: int = None):
+    def get_user_budgets(
+        self,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 100,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+        status: int = None,
+    ):
         """Get user budgets with prediction data when enabled (with pagination and optional status filter)"""
         # Get total count
         total = self.repository.count_by_user_id(user_id, status)
@@ -23,27 +31,27 @@ class BudgetService:
 
         result = []
         for item in budget_data:
-            budget = item['budget']
-            total_spent = item['total_spent']
+            budget = item["budget"]
+            total_spent = item["total_spent"]
 
             budget_dict = {
-                'id': budget.id,
-                'category_id': budget.category_id,
-                'amount': budget.amount,
-                'status': self._get_budget_status(budget.start_date, budget.end_date),
-                'start_date': budget.start_date,
-                'end_date': budget.end_date,
-                'prediction_enabled': budget.prediction_enabled,
-                'prediction_type': budget.prediction_type,
-                'prediction_days_count': budget.prediction_days_count,
-                'prediction': None
+                "id": budget.id,
+                "category_id": budget.category_id,
+                "amount": budget.amount,
+                "status": self._get_budget_status(budget.start_date, budget.end_date),
+                "start_date": budget.start_date,
+                "end_date": budget.end_date,
+                "prediction_enabled": budget.prediction_enabled,
+                "prediction_type": budget.prediction_type,
+                "prediction_days_count": budget.prediction_days_count,
+                "prediction": None,
             }
 
             # Calculate prediction if enabled
             if budget.prediction_enabled:
                 prediction = self._calculate_prediction(budget, total_spent)
                 if prediction:
-                    budget_dict['prediction'] = prediction
+                    budget_dict["prediction"] = prediction
 
             result.append(budget_dict)
 
@@ -60,11 +68,11 @@ class BudgetService:
             raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
         budget_dict = budget_data.model_dump()
-        budget_status = self._get_budget_status(budget_data.start_date, budget_data.end_date)
-        budget_dict.update({
-            'user_id': user_id,
-            'status': budget_status
-        })
+        budget_dict.update(
+            {
+                "user_id": user_id,
+            }
+        )
 
         try:
             return self.repository.create(budget_dict)
@@ -85,11 +93,11 @@ class BudgetService:
 
         # Check for overlapping budgets if dates are being changed
         update_data = budget_data.model_dump(exclude_unset=True)
-        if 'start_date' in update_data or 'end_date' in update_data:
+        if "start_date" in update_data or "end_date" in update_data:
             # Use new dates if provided, otherwise use existing dates
-            start_date = update_data.get('start_date', budget.start_date)
-            end_date = update_data.get('end_date', budget.end_date)
-            category_id = update_data.get('category_id', budget.category_id)
+            start_date = update_data.get("start_date", budget.start_date)
+            end_date = update_data.get("end_date", budget.end_date)
+            category_id = update_data.get("category_id", budget.category_id)
 
             if self.repository.check_date_range_overlap(
                 user_id, category_id, start_date, end_date, exclude_budget_id=budget_id
@@ -134,10 +142,10 @@ class BudgetService:
             daily_allowance = max(0, remaining_budget // applicable_days)
 
         return {
-            'daily_allowance': daily_allowance,
-            'remaining_budget': remaining_budget,
-            'days_remaining': applicable_days,
-            'prediction_type': budget.prediction_type
+            "daily_allowance": daily_allowance,
+            "remaining_budget": remaining_budget,
+            "days_remaining": applicable_days,
+            "prediction_type": budget.prediction_type,
         }
 
     def _get_applicable_days_in_range(self, budget: Budget, start_date: date, end_date: date, total_days: int) -> int:
@@ -174,9 +182,11 @@ class BudgetService:
             if not budget_data.prediction_type:
                 raise ValidationError(BudgetMessages.PREDICTION_TYPE_REQUIRED.value)
 
-            if (budget_data.prediction_type == PredictionType.CUSTOM and
-                budget_data.prediction_days_count and
-                    (budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31)):
+            if (
+                budget_data.prediction_type == PredictionType.CUSTOM
+                and budget_data.prediction_days_count
+                and (budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31)
+            ):
                 raise ValidationError(BudgetMessages.PREDICTION_INVALID_CUSTOM_DAYS.value)
 
     def _get_budget_status(self, start_date: date, end_date: date) -> int:
@@ -192,4 +202,3 @@ class BudgetService:
             return 3
         else:
             return 1
-        
