@@ -24,11 +24,11 @@ class BudgetCreate(BudgetBase):
     prediction_type: Optional[PredictionType] = None
     prediction_days_count: Optional[int] = Field(None, ge=1, le=31)
 
-    @field_validator('end_date')
+    @field_validator("end_date")
     @classmethod
     def end_date_must_be_after_start_date(cls, v, info):
-        if info.data.get('start_date') and v <= info.data['start_date']:
-            raise ValueError('end_date must be after start_date')
+        if info.data.get("start_date") and v <= info.data["start_date"]:
+            raise ValueError("end_date must be after start_date")
         return v
 
 
@@ -41,11 +41,11 @@ class BudgetUpdate(BaseModel):
     prediction_type: Optional[PredictionType] = None
     prediction_days_count: Optional[int] = Field(None, ge=1, le=31)
 
-    @field_validator('end_date')
+    @field_validator("end_date")
     @classmethod
     def end_date_must_be_after_start_date(cls, v, info):
-        if v is not None and info.data.get('start_date') is not None and v <= info.data['start_date']:
-            raise ValueError('end_date must be after start_date')
+        if v is not None and info.data.get("start_date") is not None and v <= info.data["start_date"]:
+            raise ValueError("end_date must be after start_date")
         return v
 
 
@@ -59,6 +59,4 @@ class BudgetResponse(BudgetBase):
     prediction_days_count: Optional[int] = None
     prediction: Optional[BudgetPrediction] = None
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

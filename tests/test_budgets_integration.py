@@ -341,3 +341,100 @@ class TestBudgetEndpoints:
         data = response.json()
         amounts = [budget["amount"] for budget in data["data"]]
         assert amounts == [30000, 40000, 50000]  # Ascending order
+
+    def test_get_budgets_filter_by_status(self, client: TestClient, authenticated_user, created_category):
+        """Test filtering budgets by status"""
+        from datetime import date, timedelta
+
+        today = date.today()
+
+        # Create an active budget (current month)
+        active_budget = {
+            "category_id": created_category["id"],
+            "amount": 50000,
+            "start_date": (today - timedelta(days=5)).isoformat(),
+            "end_date": (today + timedelta(days=10)).isoformat()
+        }
+        response = client.post(
+            "/api/v1/budgets/",
+            json=active_budget,
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 201
+
+        # Create an upcoming budget (future)
+        upcoming_budget = {
+            "category_id": created_category["id"],
+            "amount": 30000,
+            "start_date": (today + timedelta(days=30)).isoformat(),
+            "end_date": (today + timedelta(days=60)).isoformat()
+        }
+        response = client.post(
+            "/api/v1/budgets/",
+            json=upcoming_budget,
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 201
+
+        # Create an expired budget (past)
+        expired_budget = {
+            "category_id": created_category["id"],
+            "amount": 40000,
+            "start_date": (today - timedelta(days=60)).isoformat(),
+            "end_date": (today - timedelta(days=30)).isoformat()
+        }
+        response = client.post(
+            "/api/v1/budgets/",
+            json=expired_budget,
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 201
+
+        # Test filtering by active status (status=1)
+        response = client.get(
+            "/api/v1/budgets/?status=1",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert len(data["data"]) == 1
+        assert data["data"][0]["status"] == 1
+
+        # Test filtering by upcoming status (status=2)
+        response = client.get(
+            "/api/v1/budgets/?status=2",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert len(data["data"]) == 1
+        assert data["data"][0]["status"] == 2
+
+        # Test filtering by expired status (status=3)
+        response = client.get(
+            "/api/v1/budgets/?status=3",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert len(data["data"]) == 1
+        assert data["data"][0]["status"] == 3
+
+        # Test getting all budgets without filter
+        response = client.get(
+            "/api/v1/budgets/",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 3  # All 3 budgets
+
+        # Test invalid status (should return 422 validation error)
+        response = client.get(
+            "/api/v1/budgets/?status=4",
+            headers=authenticated_user["headers"]
+        )
+        assert response.status_code == 422  # Validation error

@@ -1,6 +1,6 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func, text, case
 from datetime import date
 
 from app.models.budget import Budget
@@ -11,6 +11,24 @@ from .base import BaseRepository
 class BudgetRepository(BaseRepository[Budget]):
     def __init__(self, db: Session):
         super().__init__(db, Budget)
+
+    def _apply_status_filter(self, query, status: int):
+        """
+        Apply status filter to query based on date calculations.
+
+        Status values:
+        - 1: active (start_date <= today <= end_date)
+        - 2: upcoming (start_date > today)
+        - 3: expired (end_date < today)
+        """
+        today = date.today()
+        if status == 1:  # active
+            query = query.filter(Budget.start_date <= today, Budget.end_date >= today)
+        elif status == 2:  # upcoming
+            query = query.filter(Budget.start_date > today)
+        elif status == 3:  # expired
+            query = query.filter(Budget.end_date < today)
+        return query
 
     def get_by_user_and_category_and_date_range(
         self,
@@ -89,12 +107,17 @@ class BudgetRepository(BaseRepository[Budget]):
             return self.db.query(Budget).filter(Budget.id == row.id).first()
         return None
 
-    def count_by_user_id(self, user_id: int) -> int:
-        """Count total budgets for a user"""
-        return self.db.query(Budget).filter(Budget.user_id == user_id).count()
+    def count_by_user_id(self, user_id: int, status: int = None) -> int:
+        """Count total budgets for a user, optionally filtered by status (calculated from dates)"""
+        query = self.db.query(Budget).filter(Budget.user_id == user_id)
 
-    def get_budgets_with_spending_data(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc") -> List[dict]:
-        """Get budgets for a user with spending data for their date ranges (with pagination)"""
+        if status is not None:
+            query = self._apply_status_filter(query, status)
+
+        return query.count()
+
+    def get_budgets_with_spending_data(self, user_id: int, skip: int = 0, limit: int = 100, sort_by: str = "created_at", sort_order: str = "desc", status: int = None) -> List[dict]:
+        """Get budgets for a user with spending data for their date ranges (with pagination and optional status filter)"""
         query = self.db.query(
             Budget,
             func.coalesce(func.sum(Transaction.amount), 0).label('total_spent')
@@ -107,7 +130,13 @@ class BudgetRepository(BaseRepository[Budget]):
             (Transaction.transaction_date <= Budget.end_date)
         ).filter(
             Budget.user_id == user_id
-        ).group_by(Budget.id)
+        )
+
+        # Apply status filter if provided (calculated from dates)
+        if status is not None:
+            query = self._apply_status_filter(query, status)
+
+        query = query.group_by(Budget.id)
 
         # Apply sorting
         if sort_by == "start_date":
@@ -139,10 +168,16 @@ class BudgetRepository(BaseRepository[Budget]):
             # If same status, sort by start date
             # For active and upcoming: earliest start date first
             # For expired: latest end date first (most recently expired first)
+            today = date.today()
+            status_case = case(
+                (Budget.start_date > today, 2),
+                (Budget.end_date < today, 3),
+                else_=1
+            )
             if sort_order == "desc":
-                query = query.order_by(Budget.status.desc())
+                query = query.order_by(status_case.desc(), Budget.start_date.desc)
             else:
-                query = query.order_by(Budget.status.asc())
+                query = query.order_by(status_case.asc(), Budget.start_date.asc())
         else:
             # Default fallback to id sorting
             query = query.order_by(Budget.id)

@@ -19,7 +19,6 @@ class Budget(Base):
     amount = Column(Integer)
     start_date = Column(Date, nullable=False, index=True)
     end_date = Column(Date, nullable=False, index=True)
-    status = Column(Integer, nullable=False, default=1, index=True)
 
     # Prediction fields
     prediction_enabled = Column(Boolean, default=False, nullable=False)
@@ -30,5 +29,7 @@ class Budget(Base):
     user = relationship("User", back_populates="budgets")
     category = relationship("Category", back_populates="budgets")
 
-    __table_args__ = (Index('idx_budget_user_category', 'user_id', 'category_id'),
-                      Index('idx_budget_date_range', 'user_id', 'category_id', 'start_date', 'end_date'),)
+    __table_args__ = (
+        Index("idx_budget_user_category", "user_id", "category_id"),
+        Index("idx_budget_date_range", "user_id", "category_id", "start_date", "end_date"),
+    )
