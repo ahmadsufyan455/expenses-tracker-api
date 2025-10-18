@@ -40,6 +40,16 @@ class BudgetRepository(BaseRepository[Budget]):
 
     def update_budget(self, budget_id: int, budget_data: dict):
         self._convert_enum_value(budget_data)
+        params = {
+            "id": budget_id,
+            "category_id": budget_data.get("category_id"),
+            "amount": budget_data.get("amount"),
+            "start_date": budget_data.get("start_date"),
+            "end_date": budget_data.get("end_date"),
+            "prediction_enabled": budget_data.get("prediction_enabled"),
+            "prediction_type": budget_data.get("prediction_type"),
+            "prediction_days_count": budget_data.get("prediction_days_count"),
+        }
         query = text(
             """
             UPDATE budgets
@@ -57,7 +67,7 @@ class BudgetRepository(BaseRepository[Budget]):
 
         result = self.db.execute(
             query,
-            {"id": budget_id, **budget_data},
+            params,
         )
 
         updated_row = result.fetchone()

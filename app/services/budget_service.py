@@ -82,7 +82,10 @@ class BudgetService:
                 budget_data.start_date, budget_data.end_date
             )
 
-            if "prediction_type" in budget_result_dict:
+            if (
+                "prediction_type" in budget_result_dict
+                and budget_result_dict["prediction_type"] is not None
+            ):
                 budget_result_dict["prediction_type"] = budget_result_dict[
                     "prediction_type"
                 ].lower()
@@ -105,9 +108,9 @@ class BudgetService:
             self._validate_prediction_settings(budget_data)
 
         # Check for overlapping budgets if dates are being changed
+        start_date = budget.start_date
+        end_date = budget.end_date
         update_data = budget_data.model_dump(exclude_unset=True)
-        start_date = ""
-        end_date = ""
         if "start_date" in update_data or "end_date" in update_data:
             # Use new dates if provided, otherwise use existing dates
             start_date = update_data.get("start_date", budget.start_date)
@@ -123,7 +126,7 @@ class BudgetService:
             budget_update = self.repository.update_budget(budget_id, update_data)
             budget_update["status"] = self._get_budget_status(start_date, end_date)
 
-            if "prediction_type" in update_data:
+            if "prediction_type" in budget_update and budget_update["prediction_type"] is not None:
                 budget_update["prediction_type"] = budget_update["prediction_type"].lower()
 
             return budget_update
