@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.repositories.budget_repository import BudgetRepository
-from app.schemas.budget import BudgetCreate, BudgetUpdate, PredictionType
+from app.schemas.budget import BudgetCreate, BudgetUpdate, PredictionType, BudgetResponse
 from app.models.budget import Budget
 from app.core.exceptions import NotFoundError, ConflictError, ValidationError
 from app.constants.messages import BudgetMessages
@@ -27,12 +27,16 @@ class BudgetService:
         total = self.repository.count_by_user_id(user_id, status)
 
         # Get paginated budget data
-        budget_data = self.repository.get_budgets_with_spending_data(user_id, skip, limit, sort_by, sort_order, status)
+        budget_data = self.repository.get_budgets_with_spending_data(
+            user_id, skip, limit, sort_by, sort_order, status
+        )
 
         result = []
         for item in budget_data:
             budget = item["budget"]
             total_spent = item["total_spent"]
+
+            remaining_budget = budget.amount - total_spent
 
             budget_dict = {
                 "id": budget.id,
@@ -44,6 +48,7 @@ class BudgetService:
                 "prediction_enabled": budget.prediction_enabled,
                 "prediction_type": budget.prediction_type,
                 "prediction_days_count": budget.prediction_days_count,
+                "remaining_budget": remaining_budget,
                 "prediction": None,
             }
 
@@ -57,7 +62,7 @@ class BudgetService:
 
         return result, total
 
-    def create_budget(self, user_id: int, budget_data: BudgetCreate) -> Budget:
+    def create_budget(self, user_id: int, budget_data: BudgetCreate):
         # Validate prediction settings
         self._validate_prediction_settings(budget_data)
 
@@ -75,11 +80,25 @@ class BudgetService:
         )
 
         try:
-            return self.repository.create(budget_dict)
+            budget_result_dict = self.repository.create_budget(budget_dict)
+            budget_result_dict["status"] = self._get_budget_status(
+                budget_data.start_date, budget_data.end_date
+            )
+
+            if (
+                "prediction_type" in budget_result_dict
+                and budget_result_dict["prediction_type"] is not None
+            ):
+                budget_result_dict["prediction_type"] = budget_result_dict[
+                    "prediction_type"
+                ].lower()
+
+            return budget_result_dict
+
         except IntegrityError:
             raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
-    def update_budget(self, budget_id: int, user_id: int, budget_data: BudgetUpdate) -> Budget:
+    def update_budget(self, budget_id: int, user_id: int, budget_data: BudgetUpdate):
         budget = self.repository.get_by_id(budget_id)
         if not budget:
             raise NotFoundError(BudgetMessages.NOT_FOUND.value)
@@ -92,6 +111,8 @@ class BudgetService:
             self._validate_prediction_settings(budget_data)
 
         # Check for overlapping budgets if dates are being changed
+        start_date = budget.start_date
+        end_date = budget.end_date
         update_data = budget_data.model_dump(exclude_unset=True)
         if "start_date" in update_data or "end_date" in update_data:
             # Use new dates if provided, otherwise use existing dates
@@ -105,7 +126,14 @@ class BudgetService:
                 raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
         try:
-            return self.repository.update(budget, update_data)
+            budget_update = self.repository.update_budget(budget_id, update_data)
+            budget_update["status"] = self._get_budget_status(start_date, end_date)
+
+            if "prediction_type" in budget_update and budget_update["prediction_type"] is not None:
+                budget_update["prediction_type"] = budget_update["prediction_type"].lower()
+
+            return budget_update
+
         except IntegrityError:
             raise ConflictError(BudgetMessages.ALREADY_EXISTS.value)
 
@@ -134,7 +162,9 @@ class BudgetService:
             days_remaining = (budget.end_date - today).days + 1
 
         # Calculate applicable days based on prediction type
-        applicable_days = self._get_applicable_days_in_range(budget, today, budget.end_date, days_remaining)
+        applicable_days = self._get_applicable_days_in_range(
+            budget, today, budget.end_date, days_remaining
+        )
 
         if applicable_days <= 0:
             daily_allowance = 0
@@ -148,7 +178,9 @@ class BudgetService:
             "prediction_type": budget.prediction_type,
         }
 
-    def _get_applicable_days_in_range(self, budget: Budget, start_date: date, end_date: date, total_days: int) -> int:
+    def _get_applicable_days_in_range(
+        self, budget: Budget, start_date: date, end_date: date, total_days: int
+    ) -> int:
         """Calculate applicable days based on prediction type within date range"""
         if budget.prediction_type == PredictionType.DAILY:
             return total_days
@@ -160,11 +192,15 @@ class BudgetService:
             return self._count_days_by_type_in_range(start_date, end_date, [5, 6])  # Sat, Sun
         elif budget.prediction_type == PredictionType.WEEKDAYS:
             # Count weekday days in the remaining period
-            return self._count_days_by_type_in_range(start_date, end_date, [0, 1, 2, 3, 4])  # Mon-Fri
+            return self._count_days_by_type_in_range(
+                start_date, end_date, [0, 1, 2, 3, 4]
+            )  # Mon-Fri
         else:
             return total_days
 
-    def _count_days_by_type_in_range(self, start_date: date, end_date: date, target_weekdays: list) -> int:
+    def _count_days_by_type_in_range(
+        self, start_date: date, end_date: date, target_weekdays: list
+    ) -> int:
         """Count specific weekday types in a date range"""
         count = 0
         current_date = start_date
@@ -185,7 +221,9 @@ class BudgetService:
             if (
                 budget_data.prediction_type == PredictionType.CUSTOM
                 and budget_data.prediction_days_count
-                and (budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31)
+                and (
+                    budget_data.prediction_days_count < 1 or budget_data.prediction_days_count > 31
+                )
             ):
                 raise ValidationError(BudgetMessages.PREDICTION_INVALID_CUSTOM_DAYS.value)
 
