@@ -44,7 +44,11 @@ class BudgetUpdate(BaseModel):
     @field_validator("end_date")
     @classmethod
     def end_date_must_be_after_start_date(cls, v, info):
-        if v is not None and info.data.get("start_date") is not None and v <= info.data["start_date"]:
+        if (
+            v is not None
+            and info.data.get("start_date") is not None
+            and v <= info.data["start_date"]
+        ):
             raise ValueError("end_date must be after start_date")
         return v
 
@@ -54,6 +58,7 @@ class BudgetResponse(BudgetBase):
     start_date: date
     end_date: date
     status: int
+    remaining_budget: int
     prediction_enabled: bool
     prediction_type: Optional[PredictionType] = None
     prediction_days_count: Optional[int] = None

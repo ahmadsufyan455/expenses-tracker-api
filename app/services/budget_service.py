@@ -36,6 +36,8 @@ class BudgetService:
             budget = item["budget"]
             total_spent = item["total_spent"]
 
+            remaining_budget = budget.amount - total_spent
+
             budget_dict = {
                 "id": budget.id,
                 "category_id": budget.category_id,
@@ -46,6 +48,7 @@ class BudgetService:
                 "prediction_enabled": budget.prediction_enabled,
                 "prediction_type": budget.prediction_type,
                 "prediction_days_count": budget.prediction_days_count,
+                "remaining_budget": remaining_budget,
                 "prediction": None,
             }
 
