@@ -132,6 +132,21 @@ class BudgetService:
             if "prediction_type" in budget_update and budget_update["prediction_type"] is not None:
                 budget_update["prediction_type"] = budget_update["prediction_type"].lower()
 
+            # Calculate remaining budget by fetching spending data for this specific budget
+            budget_data_list = self.repository.get_budgets_with_spending_data(
+                user_id, skip=0, limit=100  # Get all budgets to find the updated one
+            )
+
+            # Find the updated budget in the list and calculate remaining budget
+            for item in budget_data_list:
+                if item["budget"].id == budget_id:
+                    total_spent = item["total_spent"]
+                    budget_update["remaining_budget"] = budget_update["amount"] - total_spent
+                    break
+            else:
+                # If not found in spending data (shouldn't happen), default to full amount
+                budget_update["remaining_budget"] = budget_update["amount"]
+
             return budget_update
 
         except IntegrityError:
