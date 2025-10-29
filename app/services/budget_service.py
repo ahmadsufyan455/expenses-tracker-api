@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.repositories.budget_repository import BudgetRepository
-from app.schemas.budget import BudgetCreate, BudgetUpdate, PredictionType, BudgetResponse
+from app.schemas.budget import BudgetCreate, BudgetUpdate, PredictionType
 from app.models.budget import Budget
 from app.core.exceptions import NotFoundError, ConflictError, ValidationError
 from app.constants.messages import BudgetMessages
