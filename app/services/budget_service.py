@@ -93,6 +93,8 @@ class BudgetService:
                     "prediction_type"
                 ].lower()
 
+            budget_result_dict["remaining_budget"] = budget_result_dict["amount"]
+
             return budget_result_dict
 
         except IntegrityError:
