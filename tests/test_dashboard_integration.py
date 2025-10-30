@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 import calendar
 
 
@@ -15,9 +15,9 @@ class TestDashboardIntegration:
                 "transaction_date": "2025-10-15",
                 "type": "income",
                 "payment_method": "bank_transfer",
-                "description": "Salary"
+                "description": "Salary",
             },
-            headers=authenticated_user["headers"]
+            headers=authenticated_user["headers"],
         )
         assert income_response.status_code == 201
 
@@ -30,16 +30,13 @@ class TestDashboardIntegration:
                 "transaction_date": "2025-10-15",
                 "type": "expense",
                 "payment_method": "cash",
-                "description": "Groceries"
+                "description": "Groceries",
             },
-            headers=authenticated_user["headers"]
+            headers=authenticated_user["headers"],
         )
         assert expense_response.status_code == 201
 
-        response = client.get(
-            "/api/v1/dashboard/",
-            headers=authenticated_user["headers"]
-        )
+        response = client.get("/api/v1/dashboard/", headers=authenticated_user["headers"])
 
         assert response.status_code == 200
         data = response.json()
@@ -51,7 +48,10 @@ class TestDashboardIntegration:
 
         # Check period
         current_date = datetime.now()
-        expected_period = f"{current_date.year}-{current_date.month:02d}"
+        period_start = date(current_date.year, current_date.month, 1)
+        last_day = calendar.monthrange(current_date.year, current_date.month)[1]
+        period_end = date(current_date.year, current_date.month, last_day)
+        expected_period = f"{period_start} to {period_end}"
         assert dashboard_data["period"] == expected_period
 
         # Check summary
@@ -86,14 +86,13 @@ class TestDashboardIntegration:
 
     def test_get_dashboard_with_month_parameter(self, client, authenticated_user):
         response = client.get(
-            "/api/v1/dashboard/?month=2024-01",
-            headers=authenticated_user["headers"]
+            "/api/v1/dashboard/?month=2024-01", headers=authenticated_user["headers"]
         )
 
         assert response.status_code == 200
         data = response.json()
 
-        assert data["data"]["period"] == "2024-01"
+        assert data["data"]["period"] == "2024-01-01 to 2024-01-31"
         assert data["data"]["summary"]["total_income"] == 0
         assert data["data"]["summary"]["total_expenses"] == 0
         assert data["data"]["summary"]["total_expenses_today"] == 0
@@ -101,7 +100,7 @@ class TestDashboardIntegration:
     def test_get_dashboard_with_custom_limits(self, client, authenticated_user):
         response = client.get(
             "/api/v1/dashboard/?transaction_limit=1&expense_limit=1",
-            headers=authenticated_user["headers"]
+            headers=authenticated_user["headers"],
         )
 
         assert response.status_code == 200
@@ -122,24 +121,19 @@ class TestDashboardIntegration:
                 "email": "empty@example.com",
                 "password": "password123",
                 "first_name": "Empty",
-                "last_name": "User"
-            }
+                "last_name": "User",
+            },
         )
         assert register_response.status_code == 201
 
         login_response = client.post(
-            "/api/v1/auth/login",
-            json={
-                "email": "empty@example.com",
-                "password": "password123"
-            }
+            "/api/v1/auth/login", json={"email": "empty@example.com", "password": "password123"}
         )
         assert login_response.status_code == 200
         access_token = login_response.json()["data"]["access_token"]
 
         response = client.get(
-            "/api/v1/dashboard/",
-            headers={"Authorization": f"Bearer {access_token}"}
+            "/api/v1/dashboard/", headers={"Authorization": f"Bearer {access_token}"}
         )
 
         assert response.status_code == 200
@@ -162,7 +156,7 @@ class TestDashboardIntegration:
             cat_response = client.post(
                 f"/api/v1/categories/",
                 json={"name": f"Category {i}"},
-                headers=authenticated_user["headers"]
+                headers=authenticated_user["headers"],
             )
             assert cat_response.status_code == 201
             categories.append(cat_response.json()["data"])
@@ -181,9 +175,9 @@ class TestDashboardIntegration:
                     "category_id": category["id"],
                     "amount": 100000 * (i + 1),
                     "start_date": start_date,
-                    "end_date": end_date
+                    "end_date": end_date,
                 },
-                headers=authenticated_user["headers"]
+                headers=authenticated_user["headers"],
             )
 
             # Create expense
@@ -195,15 +189,12 @@ class TestDashboardIntegration:
                     "amount": 50000 * (i + 1),
                     "transaction_date": transaction_date,
                     "type": "expense",
-                    "payment_method": "cash"
+                    "payment_method": "cash",
                 },
-                headers=authenticated_user["headers"]
+                headers=authenticated_user["headers"],
             )
 
-        response = client.get(
-            "/api/v1/dashboard/",
-            headers=authenticated_user["headers"]
-        )
+        response = client.get("/api/v1/dashboard/", headers=authenticated_user["headers"])
 
         assert response.status_code == 200
         data = response.json()

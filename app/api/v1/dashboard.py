@@ -1,5 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, status, Query
+from datetime import date
 
 from app.core.dependencies import CurrentUserDep, DashboardServiceDep
 from app.core.responses import SuccessResponse
@@ -13,6 +14,8 @@ async def get_dashboard(
     current_user: CurrentUserDep,
     dashboard_service: DashboardServiceDep,
     month: Optional[str] = Query(None, description="Month in YYYY-MM format"),
+    start_date: Optional[date] = Query(None, description="Month in YYYY-MM-DD format"),
+    end_date: Optional[date] = Query(None, description="Month in YYYY-MM-DD format"),
     transaction_limit: int = Query(5, ge=1, le=50, description="Number of recent transactions to return"),
     expense_limit: int = Query(3, ge=1, le=10, description="Number of top expense categories to return"),
     budget_limit: int = Query(3, ge=1, le=10, description="Number of top budgets to return")
@@ -20,6 +23,8 @@ async def get_dashboard(
     dashboard_data = dashboard_service.get_dashboard_data(
         user_id=current_user["user_id"],
         month=month,
+        start_date=start_date,
+        end_date=end_date,
         transaction_limit=transaction_limit,
         expense_limit=expense_limit,
         budget_limit=budget_limit

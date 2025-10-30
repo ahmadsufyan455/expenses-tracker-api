@@ -12,15 +12,17 @@ class DashboardRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_monthly_summary(self, user_id: int, year: int, month: int) -> Dict[str, int]:
+    def get_monthly_summary(
+        self, user_id: int, period_start: date, period_end: date
+    ) -> Dict[str, int]:
         income_sum = (
             self.db.query(func.sum(Transaction.amount))
             .filter(
                 and_(
                     Transaction.user_id == user_id,
                     Transaction.type == TransactionType.INCOME,
-                    extract("year", Transaction.transaction_date) == year,
-                    extract("month", Transaction.transaction_date) == month,
+                    Transaction.transaction_date >= period_start,
+                    Transaction.transaction_date <= period_end,
                 )
             )
             .scalar()
@@ -33,28 +35,30 @@ class DashboardRepository:
                 and_(
                     Transaction.user_id == user_id,
                     Transaction.type == TransactionType.EXPENSE,
-                    extract("year", Transaction.transaction_date) == year,
-                    extract("month", Transaction.transaction_date) == month,
+                    Transaction.transaction_date >= period_start,
+                    Transaction.transaction_date <= period_end,
                 )
             )
             .scalar()
             or 0
         )
 
-        expense_sum_today = (
-            self.db.query(func.sum(Transaction.amount))
-            .filter(
-                and_(
-                    Transaction.user_id == user_id,
-                    Transaction.type == TransactionType.EXPENSE,
-                    extract("year", Transaction.transaction_date) == year,
-                    extract("month", Transaction.transaction_date) == month,
-                    extract("day", Transaction.transaction_date) == date.today().day,
-                ),
+        today = date.today()
+        if period_start <= today <= period_end:
+            expense_sum_today = (
+                self.db.query(func.sum(Transaction.amount))
+                .filter(
+                    and_(
+                        Transaction.user_id == user_id,
+                        Transaction.type == TransactionType.EXPENSE,
+                        Transaction.transaction_date == today,
+                    ),
+                )
+                .scalar()
+                or 0
             )
-            .scalar()
-            or 0
-        )
+        else:
+            expense_sum_today = 0
 
         return {
             "total_income": income_sum,
@@ -63,12 +67,8 @@ class DashboardRepository:
         }
 
     def get_budgets_with_spending(
-        self, user_id: int, year: int, month: int, limit: int = 3
+        self, user_id: int, period_start: date, period_end: date, limit: int = 3
     ) -> List[Dict[str, Any]]:
-        month_start = date(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        month_end = date(year, month, last_day)
-
         budgets = (
             self.db.query(
                 Budget,
@@ -97,8 +97,8 @@ class DashboardRepository:
                 and_(
                     Budget.user_id == user_id,
                     # Budget period overlaps with the requested month
-                    Budget.start_date <= month_end,
-                    Budget.end_date >= month_start,
+                    Budget.start_date <= period_end,
+                    Budget.end_date >= period_start,
                 )
             )
             .group_by(Budget.id, Category.name)
@@ -123,7 +123,11 @@ class DashboardRepository:
         return result
 
     def get_recent_transactions(
-        self, user_id: int, limit: int = 5, year: Optional[int] = None, month: Optional[int] = None
+        self,
+        user_id: int,
+        limit: int = 5,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
         query = (
             self.db.query(Transaction, Category.name.label("category_name"))
@@ -132,11 +136,11 @@ class DashboardRepository:
         )
 
         # Add month/year filtering if provided
-        if year is not None and month is not None:
+        if period_start is not None and period_end is not None:
             query = query.filter(
                 and_(
-                    extract("year", Transaction.transaction_date) == year,
-                    extract("month", Transaction.transaction_date) == month,
+                    Transaction.transaction_date >= period_start,
+                    Transaction.transaction_date <= period_end,
                 )
             )
 
@@ -157,7 +161,7 @@ class DashboardRepository:
         return result
 
     def get_top_expenses(
-        self, user_id: int, year: int, month: int, limit: int = 3
+        self, user_id: int, period_start: date, period_end: date, limit: int = 3
     ) -> List[Dict[str, Any]]:
         expense_query = (
             self.db.query(Category.name, func.sum(Transaction.amount).label("total"))
@@ -166,8 +170,8 @@ class DashboardRepository:
                 and_(
                     Transaction.user_id == user_id,
                     Transaction.type == TransactionType.EXPENSE,
-                    extract("year", Transaction.transaction_date) == year,
-                    extract("month", Transaction.transaction_date) == month,
+                    Transaction.transaction_date >= period_start,
+                    Transaction.transaction_date <= period_end,
                 )
             )
             .group_by(Category.name)
