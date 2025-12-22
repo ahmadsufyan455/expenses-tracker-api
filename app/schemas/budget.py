@@ -71,3 +71,4 @@ class BudgetResponse(BudgetBase):
 
 class TotalActiveBudgetResponse(BaseModel):
     total_active_budgets: int
+    remaining_active_budgets: int

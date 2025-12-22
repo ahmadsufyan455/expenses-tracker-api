@@ -261,6 +261,9 @@ class BudgetService:
 
     def get_total_active_budgets(self, user_id: int):
         total_active_budgets = self.repository.get_total_active_budgets(user_id=user_id)
+        total_active_spent = self.repository.get_total_active_spent(user_id=user_id)
+        total_remaining_budgets = total_active_budgets - total_active_spent
         return {
-            "total_active_budgets": total_active_budgets
+            "total_active_budgets": total_active_budgets,
+            "remaining_active_budgets": total_remaining_budgets,
         }

@@ -276,3 +276,20 @@ class BudgetRepository(BaseRepository[Budget]):
                      """)
         result = self.db.execute(query, params)
         return result.scalar()
+
+    def get_total_active_spent(self, user_id: int) -> int:
+        params = {"user_id": user_id}
+        query = text("""
+                     WITH active_budget_range AS (SELECT MIN(b.start_date) AS start_date,
+                                                         MAX(b.end_date)   AS end_date
+                                                  FROM budgets b
+                                                  WHERE b.user_id = :user_id
+                                                    AND CURRENT_DATE BETWEEN b.start_date AND b.end_date)
+                     SELECT COALESCE(SUM(t.amount), 0) AS total_spent
+                     FROM transactions t
+                              JOIN active_budget_range r
+                                   ON t.transaction_date BETWEEN r.start_date AND r.end_date
+                     WHERE t.user_id = :user_id;
+                     """)
+        result = self.db.execute(query, params)
+        return result.scalar()
