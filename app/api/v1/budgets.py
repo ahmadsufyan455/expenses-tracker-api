@@ -1,22 +1,22 @@
 from fastapi import APIRouter, status, Query
 
+from app.constants.messages import BudgetMessages
 from app.core.dependencies import BudgetServiceDep, CurrentUserDep
 from app.core.responses import SuccessResponse, PaginatedResponse
-from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate
-from app.constants.messages import BudgetMessages
+from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate, TotalActiveBudgetResponse
 
 router = APIRouter()
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_budgets(
-    budget_service: BudgetServiceDep,
-    current_user: CurrentUserDep,
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: asc or desc"),
-    status: int = Query(None, ge=1, le=3, description="Filter by status: 1=active, 2=upcoming, 3=expired")
+        budget_service: BudgetServiceDep,
+        current_user: CurrentUserDep,
+        page: int = Query(1, ge=1),
+        per_page: int = Query(20, ge=1, le=100),
+        sort_by: str = Query("created_at", description="Field to sort by"),
+        sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: asc or desc"),
+        status: int = Query(None, ge=1, le=3, description="Filter by status: 1=active, 2=upcoming, 3=expired")
 ) -> PaginatedResponse:
     skip = (page - 1) * per_page
 
@@ -38,11 +38,24 @@ async def get_budgets(
     )
 
 
+@router.get("/total-active", status_code=status.HTTP_200_OK)
+async def get_total_active_budgets(
+        budget_service: BudgetServiceDep,
+        current_user: CurrentUserDep,
+) -> SuccessResponse:
+    total_active_budgets = budget_service.get_total_active_budgets(current_user["user_id"])
+    total_active_budget_response = TotalActiveBudgetResponse.model_validate(total_active_budgets)
+    return SuccessResponse(
+        message=BudgetMessages.RETRIEVED_SUCCESS.value,
+        data=total_active_budget_response
+    )
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_budget(
-    budget_data: BudgetCreate,
-    budget_service: BudgetServiceDep,
-    current_user: CurrentUserDep
+        budget_data: BudgetCreate,
+        budget_service: BudgetServiceDep,
+        current_user: CurrentUserDep
 ) -> SuccessResponse:
     budget = budget_service.create_budget(current_user["user_id"], budget_data)
     budget_response = BudgetResponse.model_validate(budget)
@@ -54,10 +67,10 @@ async def create_budget(
 
 @router.put("/{budget_id}", status_code=status.HTTP_200_OK)
 async def update_budget(
-    budget_id: int,
-    budget_data: BudgetUpdate,
-    budget_service: BudgetServiceDep,
-    current_user: CurrentUserDep
+        budget_id: int,
+        budget_data: BudgetUpdate,
+        budget_service: BudgetServiceDep,
+        current_user: CurrentUserDep
 ) -> SuccessResponse:
     budget = budget_service.update_budget(budget_id, current_user["user_id"], budget_data)
     budget_response = BudgetResponse.model_validate(budget)
@@ -69,8 +82,8 @@ async def update_budget(
 
 @router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_budget(
-    budget_id: int,
-    budget_service: BudgetServiceDep,
-    current_user: CurrentUserDep
+        budget_id: int,
+        budget_service: BudgetServiceDep,
+        current_user: CurrentUserDep
 ):
     budget_service.delete_budget(budget_id, current_user["user_id"])

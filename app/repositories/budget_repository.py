@@ -1,8 +1,9 @@
-from typing import Optional, List
-from sqlalchemy.orm import Session
-from sqlalchemy import func, text, case
 from datetime import date
 from enum import Enum
+from typing import Optional, List
+
+from sqlalchemy import func, text, case
+from sqlalchemy.orm import Session
 
 from app.models.budget import Budget
 from app.models.transaction import Transaction, TransactionType
@@ -23,10 +24,11 @@ class BudgetRepository(BaseRepository[Budget]):
 
         query = text(
             """
-            INSERT INTO budgets (user_id, category_id, amount, start_date, end_date, prediction_enabled, prediction_type, prediction_days_count)
-            VALUES (:user_id, :category_id, :amount, :start_date, :end_date, :prediction_enabled, :prediction_type, :prediction_days_count)
-            RETURNING *
-        """
+            INSERT INTO budgets (user_id, category_id, amount, start_date, end_date, prediction_enabled,
+                                 prediction_type, prediction_days_count)
+            VALUES (:user_id, :category_id, :amount, :start_date, :end_date, :prediction_enabled, :prediction_type,
+                    :prediction_days_count) RETURNING *
+            """
         )
 
         result = self.db.execute(query, {**budget_data})
@@ -53,16 +55,15 @@ class BudgetRepository(BaseRepository[Budget]):
         query = text(
             """
             UPDATE budgets
-            SET category_id = COALESCE(:category_id, category_id),
-                amount = COALESCE(:amount, amount),
-                start_date = COALESCE(:start_date, start_date),
-                end_date = COALESCE(:end_date, end_date),
-                prediction_enabled = COALESCE(:prediction_enabled, prediction_enabled),
-                prediction_type = COALESCE(:prediction_type, prediction_type),
+            SET category_id           = COALESCE(:category_id, category_id),
+                amount                = COALESCE(:amount, amount),
+                start_date            = COALESCE(:start_date, start_date),
+                end_date              = COALESCE(:end_date, end_date),
+                prediction_enabled    = COALESCE(:prediction_enabled, prediction_enabled),
+                prediction_type       = COALESCE(:prediction_type, prediction_type),
                 prediction_days_count = COALESCE(:prediction_days_count, prediction_days_count)
-            WHERE id = :id
-            RETURNING *
-        """
+            WHERE id = :id RETURNING *
+            """
         )
 
         result = self.db.execute(
@@ -96,7 +97,7 @@ class BudgetRepository(BaseRepository[Budget]):
         return query
 
     def get_by_user_and_category_and_date_range(
-        self, user_id: int, category_id: int, start_date: date, end_date: date
+            self, user_id: int, category_id: int, start_date: date, end_date: date
     ) -> Optional[Budget]:
         return (
             self.db.query(Budget)
@@ -110,12 +111,12 @@ class BudgetRepository(BaseRepository[Budget]):
         )
 
     def check_date_range_overlap(
-        self,
-        user_id: int,
-        category_id: int,
-        start_date: date,
-        end_date: date,
-        exclude_budget_id: Optional[int] = None,
+            self,
+            user_id: int,
+            category_id: int,
+            start_date: date,
+            end_date: date,
+            exclude_budget_id: Optional[int] = None,
     ) -> bool:
         """Check if the given date range overlaps with existing budgets using raw SQL"""
         exclude_clause = ""
@@ -148,18 +149,18 @@ class BudgetRepository(BaseRepository[Budget]):
         return overlap_count > 0
 
     def get_budget_for_transaction_date(
-        self, user_id: int, category_id: int, transaction_date: date
+            self, user_id: int, category_id: int, transaction_date: date
     ) -> Optional[Budget]:
         """Find budget that covers the given transaction date using raw SQL"""
         query = text(
             """
-            SELECT * FROM budgets
+            SELECT *
+            FROM budgets
             WHERE user_id = :user_id
               AND category_id = :category_id
               AND start_date <= :transaction_date
-              AND end_date >= :transaction_date
-            LIMIT 1
-        """
+              AND end_date >= :transaction_date LIMIT 1
+            """
         )
 
         result = self.db.execute(
@@ -182,13 +183,13 @@ class BudgetRepository(BaseRepository[Budget]):
         return query.count()
 
     def get_budgets_with_spending_data(
-        self,
-        user_id: int,
-        skip: int = 0,
-        limit: int = 100,
-        sort_by: str = "created_at",
-        sort_order: str = "desc",
-        status: int = None,
+            self,
+            user_id: int,
+            skip: int = 0,
+            limit: int = 100,
+            sort_by: str = "created_at",
+            sort_order: str = "desc",
+            status: int = None,
     ) -> List[dict]:
         """Get budgets for a user with spending data for their date ranges (with pagination and optional status filter)"""
         query = (
@@ -264,3 +265,14 @@ class BudgetRepository(BaseRepository[Budget]):
             )
 
         return results
+
+    def get_total_active_budgets(self, user_id: int) -> int:
+        params = {"user_id": user_id}
+        query = text("""
+                     SELECT COALESCE(SUM(b.amount), 0) AS total_amount
+                     FROM budgets b
+                     WHERE b.user_id = :user_id
+                       AND CURRENT_DATE BETWEEN b.start_date AND b.end_date;
+                     """)
+        result = self.db.execute(query, params)
+        return result.scalar()
