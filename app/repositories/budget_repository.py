@@ -289,7 +289,8 @@ class BudgetRepository(BaseRepository[Budget]):
                      FROM transactions t
                               JOIN active_budget_range r
                                    ON t.transaction_date BETWEEN r.start_date AND r.end_date
-                     WHERE t.user_id = :user_id;
+                     WHERE t.user_id = :user_id
+                       AND t.type = 'EXPENSE';
                      """)
         result = self.db.execute(query, params)
         return result.scalar()
