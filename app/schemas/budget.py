@@ -1,6 +1,8 @@
-from typing import Optional
-from pydantic import BaseModel, Field, field_validator
 from datetime import date
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
 from app.constants.messages import ValidationMessages
 from app.models.budget import PredictionType
 
@@ -45,9 +47,9 @@ class BudgetUpdate(BaseModel):
     @classmethod
     def end_date_must_be_after_start_date(cls, v, info):
         if (
-            v is not None
-            and info.data.get("start_date") is not None
-            and v <= info.data["start_date"]
+                v is not None
+                and info.data.get("start_date") is not None
+                and v <= info.data["start_date"]
         ):
             raise ValueError("end_date must be after start_date")
         return v
@@ -65,3 +67,8 @@ class BudgetResponse(BudgetBase):
     prediction: Optional[BudgetPrediction] = None
 
     model_config = {"from_attributes": True}
+
+
+class TotalActiveBudgetResponse(BaseModel):
+    total_active_budgets: int
+    remaining_active_budgets: int
