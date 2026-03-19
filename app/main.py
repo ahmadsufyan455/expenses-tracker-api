@@ -9,14 +9,7 @@ from app.api.v1.router import api_router
 from app.core.exceptions import BaseError
 from app.core.responses import SuccessResponse
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
-app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    debug=settings.debug
-)
+app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
 
 # Add CORS middleware
 app.add_middleware(
@@ -30,13 +23,7 @@ app.add_middleware(
 
 @app.exception_handler(BaseError)
 async def base_error_handler(_: Request, exc: BaseError):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "status_code": exc.status_code,
-            "message": exc.message
-        }
-    )
+    return JSONResponse(status_code=exc.status_code, content={"status_code": exc.status_code, "message": exc.message})
 
 
 @app.get("/")
@@ -46,8 +33,8 @@ def read_root():
         data={
             "name": settings.app_name,
             "version": settings.app_version,
-            "description": "A simple API for managing personal finances"
-        }
+            "description": "A simple API for managing personal finances",
+        },
     )
 
 
